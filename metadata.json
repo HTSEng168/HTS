@@ -1,0 +1,10 @@
+{
+  "name": "Siri Maintenance & Engineering - ระบบแจ้งซ่อมและจัดคิวงานช่างอาคาร",
+  "description": "ระบบแจ้งซ่อมเครื่องจักรและอุปกรณ์ภายในอาคาร Siri Maintenance & Engineering จัดคิวงาน แจ้งเตือน LINE ช่างทูและช่างต๊ะ พร้อมแดชบอร์ดเรียลไทม์และระบบปิดงานช่าง",
+  "requestFramePermissions": [
+    "notifications"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

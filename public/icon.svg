@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="50%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="accent-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle -->
+  <rect width="512" height="512" rx="112" fill="url(#bg-grad)"/>
+
+  <!-- Subtle grid/pattern -->
+  <circle cx="256" cy="256" r="210" stroke="#ffffff" stroke-opacity="0.08" stroke-width="2" fill="none"/>
+  <circle cx="256" cy="256" r="160" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1.5" fill="none"/>
+
+  <!-- Building outline in background -->
+  <g opacity="0.35" fill="#ffffff">
+    <path d="M128 360h60v-90h-60v90zm16-74h28v16h-28v-16zm0 30h28v16h-28v-16zm64 44h80v-160h-80v160zm18-144h44v18h-44v-18zm0 32h44v18h-44v-18zm0 32h44v18h-44v-18zm0 32h44v18h-44v-18z"/>
+  </g>
+
+  <!-- Central Gear & Wrench Symbol -->
+  <g filter="url(#shadow)">
+    <!-- Gear base -->
+    <path fill="#ffffff" fill-rule="evenodd" d="M256 140c-64.065 0-116 51.935-116 116 0 64.066 51.935 116 116 116 64.066 0 116-51.934 116-116 0-64.065-51.934-116-116-116zm0 46a70 70 0 100 140 70 70 0 000-140z"/>
+    
+    <!-- Stylized Wrench across -->
+    <path fill="url(#accent-grad)" stroke="#ffffff" stroke-width="8" stroke-linejoin="round" d="M346.5 165.5a42 42 0 00-47.8 7.3l-28.7 28.7 26.9 26.9 28.7-28.7a42 42 0 007.3-47.8l-18.4 18.4-12-1.4-1.4-12 18.4-18.4zm-92.4 92.4l-89.8 89.8a22 22 0 0031.1 31.1l89.8-89.8-31.1-31.1z"/>
+
+    <!-- Status Pulse Beacon Dot -->
+    <circle cx="360" cy="150" r="18" fill="#10b981" stroke="#ffffff" stroke-width="4"/>
+  </g>
+</svg>
