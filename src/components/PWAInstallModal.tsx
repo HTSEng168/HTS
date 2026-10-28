@@ -43,16 +43,16 @@ export const PWAInstallModal: React.FC = () => {
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-900 border border-slate-200 shadow-md shrink-0">
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-slate-200/90 shadow-md shrink-0">
                   <img
-                    src="/assets/aistudio/Image_October_26__2026_-_9_27PM_a487d852"
-                    alt="Siri Maintenance"
+                    src="/assets/aistudio/Gemini_Generated_Image_8e0ctt8e0ctt8e0c_f0f9bdaa.jpg"
+                    alt="Siri Laboratories"
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-base">ติดตั้ง Siri Maintenance</h3>
-                  <p className="text-xs text-slate-500">Siri Maintenance & Engineering (iOS & Android)</p>
+                  <h3 className="font-bold text-slate-900 text-base">ติดตั้ง Siri Laboratories</h3>
+                  <p className="text-xs text-slate-500">Siri Laboratories Maintenance (iOS & Android)</p>
                 </div>
               </div>
               <button

@@ -11,11 +11,18 @@ import {
   Sparkles,
   Phone,
   Tag,
-  Check
+  Check,
+  Lock,
+  Eye,
+  EyeOff,
+  KeyRound,
+  ShieldCheck,
+  Settings
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RepairTicket, Technician, TicketStatus, SparePartItem } from '../types';
 import { STATUS_LABELS_TH, PRIORITY_LABELS_TH } from '../services/lineService';
+import { storageService, DEFAULT_CLOSURE_PASSWORD } from '../services/storageService';
 import { DigitalSignaturePad } from './DigitalSignaturePad';
 
 interface TechnicianPortalProps {
@@ -33,6 +40,7 @@ interface TechnicianPortalProps {
     }
   ) => void;
   onSelectTicket: (ticketId: string) => void;
+  onOpenSettings?: () => void;
 }
 
 export const TechnicianPortal: React.FC<TechnicianPortalProps> = ({
@@ -41,9 +49,22 @@ export const TechnicianPortal: React.FC<TechnicianPortalProps> = ({
   onUpdateStatus,
   onCloseTicket,
   onSelectTicket,
+  onOpenSettings,
 }) => {
   const [selectedTechId, setSelectedTechId] = useState<string>(technicians[0]?.id || 'TECH-01');
   const [closingTicket, setClosingTicket] = useState<RepairTicket | null>(null);
+
+  // Password protection for job closure
+  const [passwordPromptTicket, setPasswordPromptTicket] = useState<RepairTicket | null>(null);
+  const [closurePasswordInput, setClosurePasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Optional change password modal
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [oldPasswordInput, setOldPasswordInput] = useState('');
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [changePasswordMsg, setChangePasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Status reason modal
   const [promptingStatus, setPromptingStatus] = useState<{
@@ -78,19 +99,60 @@ export const TechnicianPortal: React.FC<TechnicianPortalProps> = ({
     }
 
     if (targetStatus === 'COMPLETED') {
+      // Require technician password before opening the closure page
+      setPasswordPromptTicket(ticket);
+      setClosurePasswordInput('');
+      setPasswordError(null);
+      setShowPassword(false);
+      return;
+    }
+
+    // Direct status change
+    onUpdateStatus(ticket.id, targetStatus);
+  };
+
+  const handleVerifyPasswordAndOpenClosure = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordPromptTicket) return;
+
+    if (storageService.verifyClosurePassword(closurePasswordInput, currentTech?.id)) {
+      const ticketToClose = passwordPromptTicket;
+      setPasswordPromptTicket(null);
+      setClosurePasswordInput('');
+      setPasswordError(null);
+
       // Open full closure modal
-      setClosingTicket(ticket);
+      setClosingTicket(ticketToClose);
       setRepairNotes('ตรวจสอบและซ่อมแซมชิ้นส่วนที่ชำรุด ทดสอบระบบทำงานได้ตามมาตรฐานปกติ');
       setParts([
         { id: 'p-' + Date.now(), name: 'ชุดอุปกรณ์ซ่อมบำรุง / น็อตข้อต่อ', quantity: 1, unitPrice: 350 },
       ]);
       setAfterPhotoUrl(undefined);
       setSignatureUrl(undefined);
+    } else {
+      setPasswordError('รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
+    }
+  };
+
+  const handleChangePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!storageService.verifyClosurePassword(oldPasswordInput)) {
+      setChangePasswordMsg({ type: 'error', text: 'รหัสผ่านเดิมไม่ถูกต้อง' });
+      return;
+    }
+    if (!newPasswordInput.trim() || newPasswordInput.trim().length < 4) {
+      setChangePasswordMsg({ type: 'error', text: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร' });
       return;
     }
 
-    // Direct status change
-    onUpdateStatus(ticket.id, targetStatus);
+    storageService.setClosurePassword(newPasswordInput.trim());
+    setChangePasswordMsg({ type: 'success', text: 'เปลี่ยนรหัสผ่านปิดงานช่างเรียบร้อยแล้ว' });
+    setTimeout(() => {
+      setIsChangePasswordOpen(false);
+      setOldPasswordInput('');
+      setNewPasswordInput('');
+      setChangePasswordMsg(null);
+    }, 1800);
   };
 
   const handleConfirmStatusWithReason = () => {
@@ -179,33 +241,47 @@ export const TechnicianPortal: React.FC<TechnicianPortalProps> = ({
           </p>
         </div>
 
-        {/* Technician Profile Card Selector */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/15 flex items-center gap-3 shrink-0 self-stretch sm:self-auto">
-          <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white/40 shadow-md shrink-0 bg-slate-800">
-            <img
-              src={currentTech?.avatar}
-              alt="Current Tech"
-              className="w-full h-full object-cover object-[center_20%]"
-            />
-          </div>
-          <div className="space-y-0.5">
-            <span className="text-[10px] text-blue-200 block font-medium">ช่างที่เข้าสู่ระบบปฏิบัติงาน:</span>
-            <select
-              value={selectedTechId}
-              onChange={(e) => setSelectedTechId(e.target.value)}
-              className="bg-transparent text-white font-bold text-xs sm:text-sm outline-none cursor-pointer border-b border-white/20 pb-0.5"
-            >
-              {technicians.map((t) => (
-                <option key={t.id} value={t.id} className="text-slate-900">
-                  {t.name} ({t.nickname}) - {t.specialty}
-                </option>
-              ))}
-            </select>
-            <div className="text-[10px] text-slate-300 flex items-center gap-1">
-              <Phone className="w-3 h-3 text-emerald-400" />
-              {currentTech?.phone}
+        {/* Technician Profile Card Selector & Settings button */}
+        <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-auto">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/15 flex items-center gap-3 shrink-0 flex-1 sm:flex-initial">
+            <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white/40 shadow-md shrink-0 bg-slate-800">
+              <img
+                src={currentTech?.avatar}
+                alt="Current Tech"
+                className="w-full h-full object-cover object-[center_20%]"
+              />
+            </div>
+            <div className="space-y-0.5">
+              <span className="text-[10px] text-blue-200 block font-medium">ช่างที่เข้าสู่ระบบปฏิบัติงาน:</span>
+              <select
+                value={selectedTechId}
+                onChange={(e) => setSelectedTechId(e.target.value)}
+                className="bg-transparent text-white font-bold text-xs sm:text-sm outline-none cursor-pointer border-b border-white/20 pb-0.5"
+              >
+                {technicians.map((t) => (
+                  <option key={t.id} value={t.id} className="text-slate-900">
+                    {t.name} ({t.nickname}) - {t.specialty}
+                  </option>
+                ))}
+              </select>
+              <div className="text-[10px] text-slate-300 flex items-center gap-1">
+                <Phone className="w-3 h-3 text-emerald-400" />
+                {currentTech?.phone}
+              </div>
             </div>
           </div>
+
+          {onOpenSettings && (
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl border border-white/15 shadow-sm transition flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95"
+              title="ตั้งค่าทีมช่าง & รหัสผ่าน"
+            >
+              <Settings className="w-5 h-5 text-amber-300" />
+              <span className="text-[10px] font-bold">ตั้งค่าช่าง</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -461,15 +537,191 @@ export const TechnicianPortal: React.FC<TechnicianPortalProps> = ({
         </div>
       )}
 
+      {/* Technician Job Closure Password Verification Modal */}
+      {passwordPromptTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 space-y-5">
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 shadow-inner">
+                <Lock className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
+                  ระบบความปลอดภัยปิดงานช่าง
+                </span>
+                <h3 className="text-base sm:text-lg font-black text-slate-900 mt-1">
+                  กรอกรหัสผ่านเพื่อปิดงานช่าง
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  หน้านี้สงวนสิทธิ์สำหรับช่างซ่อมบำรุง เพื่อความเป็นส่วนตัวและความถูกต้องของงาน
+                </p>
+              </div>
+            </div>
+
+            {/* Target Ticket Details */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+              <div className="flex items-center justify-between font-bold text-slate-800">
+                <span>คิว: {passwordPromptTicket.queueNumber} (#{passwordPromptTicket.ticketNumber})</span>
+                <span className="text-slate-500 font-normal">{passwordPromptTicket.roomOrSpot}</span>
+              </div>
+              <div className="text-slate-700 font-medium truncate">
+                งาน: {passwordPromptTicket.title}
+              </div>
+            </div>
+
+            <form onSubmit={handleVerifyPasswordAndOpenClosure} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  รหัสผ่านปิดงานช่าง (Password) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    autoFocus
+                    required
+                    value={closurePasswordInput}
+                    onChange={(e) => {
+                      setClosurePasswordInput(e.target.value);
+                      setPasswordError(null);
+                    }}
+                    placeholder="••••••••"
+                    className={`w-full pl-3.5 pr-10 py-2.5 rounded-xl border text-sm font-mono outline-none tracking-widest transition ${
+                      passwordError 
+                        ? 'border-rose-400 bg-rose-50/50 text-rose-900 focus:ring-2 focus:ring-rose-400' 
+                        : 'border-slate-300 text-slate-800 focus:ring-2 focus:ring-indigo-500'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    title={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {passwordError && (
+                  <div className="mt-2 text-xs text-rose-600 bg-rose-50 p-2.5 rounded-xl border border-rose-200 font-medium">
+                    {passwordError}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPasswordPromptTicket(null);
+                    setClosurePasswordInput('');
+                    setPasswordError(null);
+                  }}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>ปลดล็อกเข้าสู่หน้าปิดงาน</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {isChangePasswordOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
+                <KeyRound className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm">เปลี่ยนรหัสผ่านปิดงานช่าง</h3>
+                <p className="text-[11px] text-slate-500">รหัสผ่านเริ่มต้น: HTS168eng</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleChangePasswordSubmit} className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-700 font-medium mb-1">รหัสผ่านปัจจุบัน</label>
+                <input
+                  type="password"
+                  required
+                  value={oldPasswordInput}
+                  onChange={(e) => setOldPasswordInput(e.target.value)}
+                  placeholder="เช่น HTS168eng"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none font-mono text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-medium mb-1">รหัสผ่านใหม่ที่ต้องการ</label>
+                <input
+                  type="password"
+                  required
+                  value={newPasswordInput}
+                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                  placeholder="รหัสผ่านใหม่อย่างน้อย 4 ตัวอักษร"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none font-mono text-xs"
+                />
+              </div>
+
+              {changePasswordMsg && (
+                <div
+                  className={`p-2.5 rounded-xl border text-[11px] font-medium ${
+                    changePasswordMsg.type === 'success'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                  }`}
+                >
+                  {changePasswordMsg.text}
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsChangePasswordOpen(false);
+                    setChangePasswordMsg(null);
+                  }}
+                  className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 font-medium"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-white font-bold"
+                >
+                  บันทึกรหัสใหม่
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Full Ticket Closure Modal (สรุปงาน & ปิดใบแจ้งซ่อม) */}
       {closingTicket && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 space-y-5 my-8">
             <div className="flex items-start justify-between pb-3 border-b border-slate-100">
               <div>
-                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                  ปิดใบแจ้งซ่อม (Job Completion)
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    ปิดใบแจ้งซ่อม (Job Completion)
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
+                    <ShieldCheck className="w-3 h-3 text-indigo-600" />
+                    ยืนยันรหัสผ่านช่างแล้ว
+                  </span>
+                </div>
                 <h3 className="text-lg font-black text-slate-900 mt-1">
                   สรุปงาน: [{closingTicket.queueNumber}] {closingTicket.title}
                 </h3>
@@ -477,6 +729,16 @@ export const TechnicianPortal: React.FC<TechnicianPortalProps> = ({
                   สถานที่: {closingTicket.roomOrSpot} ({closingTicket.building})
                 </p>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setIsChangePasswordOpen(true)}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-slate-800 px-2.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition cursor-pointer"
+                title="เปลี่ยนรหัสผ่านปิดงานช่าง"
+              >
+                <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+                <span className="hidden sm:inline">เปลี่ยนรหัสผ่าน</span>
+              </button>
             </div>
 
             <form onSubmit={handleCompleteClosure} className="space-y-4 text-xs">

@@ -22,6 +22,7 @@ import { TicketTrackerView } from './components/TicketTrackerView';
 import { TicketHistoryView } from './components/TicketHistoryView';
 import { DashboardView } from './components/DashboardView';
 import { TechnicianPortal } from './components/TechnicianPortal';
+import { TechnicianSettingsModal } from './components/TechnicianSettingsModal';
 
 export default function App() {
   const [tickets, setTickets] = useState<RepairTicket[]>([]);
@@ -30,6 +31,7 @@ export default function App() {
   const [currentRole, setCurrentRole] = useState<'USER' | 'TECH'>('USER');
   const [selectedTicketId, setSelectedTicketId] = useState<string | undefined>();
   const [isLineModalOpen, setIsLineModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   // Push notifications hook
   const { 
@@ -218,6 +220,7 @@ export default function App() {
         currentRole={currentRole}
         onRoleChange={handleRoleChange}
         onOpenLineModal={() => setIsLineModalOpen(true)}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
         pushPermission={pushPermission}
         onRequestPush={handleRequestPush}
         activeTicketCount={pendingCount}
@@ -349,6 +352,7 @@ export default function App() {
             onUpdateStatus={handleUpdateStatus}
             onCloseTicket={handleCloseTicket}
             onSelectTicket={handleNavigateToTrack}
+            onOpenSettings={() => setIsSettingsModalOpen(true)}
           />
         )}
       </main>
@@ -369,6 +373,14 @@ export default function App() {
       <LineNotificationModal
         isOpen={isLineModalOpen}
         onClose={() => setIsLineModalOpen(false)}
+      />
+
+      {/* Technician Team & Security Settings Modal */}
+      <TechnicianSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        technicians={technicians}
+        onTechniciansChange={(updated) => setTechnicians(updated)}
       />
     </div>
   );

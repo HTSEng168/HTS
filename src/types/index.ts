@@ -72,6 +72,7 @@ export interface Technician {
   specialty: string;
   isAvailable: boolean;
   currentTicketId?: string;
+  personalPassword?: string;
 }
 
 export interface LineNotificationConfig {

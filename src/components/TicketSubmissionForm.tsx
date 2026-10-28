@@ -151,11 +151,11 @@ export const TicketSubmissionForm: React.FC<TicketSubmissionFormProps> = ({
             </p>
           </div>
 
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-white/20 shadow-xl shrink-0 bg-slate-800 hidden sm:block">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-white/20 shadow-xl shrink-0 bg-white hidden sm:block p-1">
             <img
-              src="/assets/aistudio/Image_October_26__2026_-_9_27PM_a487d852"
-              alt="Siri Maintenance Logo"
-              className="w-full h-full object-cover"
+              src="/assets/aistudio/Gemini_Generated_Image_8e0ctt8e0ctt8e0c_f0f9bdaa.jpg"
+              alt="Siri Laboratories Logo"
+              className="w-full h-full object-cover rounded-xl"
             />
           </div>
         </div>

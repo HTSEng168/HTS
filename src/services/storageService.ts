@@ -1,6 +1,6 @@
 import { RepairTicket, Technician, LineNotificationConfig, LineMessageLog } from '../types';
 
-export const APP_LOGO = '/assets/aistudio/Image_October_26__2026_-_9_27PM_a487d852';
+export const APP_LOGO = '/assets/aistudio/Gemini_Generated_Image_8e0ctt8e0ctt8e0c_f0f9bdaa.jpg';
 
 export const INITIAL_TECHNICIANS: Technician[] = [
   {
@@ -176,7 +176,10 @@ const STORAGE_KEYS = {
   TECHNICIANS: 'facilifix_technicians_v4',
   LINE_CONFIG: 'facilifix_line_config_v4',
   LINE_LOGS: 'facilifix_line_logs_v4',
+  CLOSURE_PASSWORD: 'facilifix_closure_password_v1',
 };
+
+export const DEFAULT_CLOSURE_PASSWORD = 'HTS168eng';
 
 export const storageService = {
   getTickets(): RepairTicket[] {
@@ -276,9 +279,89 @@ export const storageService = {
     }
   },
 
+  getClosurePassword(): string {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.CLOSURE_PASSWORD);
+      return saved || DEFAULT_CLOSURE_PASSWORD;
+    } catch {
+      return DEFAULT_CLOSURE_PASSWORD;
+    }
+  },
+
+  setClosurePassword(newPassword: string): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.CLOSURE_PASSWORD, newPassword);
+    } catch (e) {
+      console.error('Error saving closure password:', e);
+    }
+  },
+
+  verifyClosurePassword(entered: string, activeTechId?: string): boolean {
+    const trimmed = entered.trim();
+    if (!trimmed) return false;
+
+    // 1. Master Default Fallback: HTS168eng ALWAYS works!
+    if (trimmed === DEFAULT_CLOSURE_PASSWORD) {
+      return true;
+    }
+
+    // 2. Global custom password if changed
+    const customGlobal = this.getClosurePassword();
+    if (customGlobal && trimmed === customGlobal.trim()) {
+      return true;
+    }
+
+    // 3. Active technician personal password
+    const techs = this.getTechnicians();
+    if (activeTechId) {
+      const activeTech = techs.find((t) => t.id === activeTechId);
+      if (activeTech?.personalPassword && trimmed === activeTech.personalPassword.trim()) {
+        return true;
+      }
+    }
+
+    // 4. Check if entered password matches any technician's personal password
+    const matchedAny = techs.some((t) => t.personalPassword && trimmed === t.personalPassword.trim());
+    if (matchedAny) {
+      return true;
+    }
+
+    return false;
+  },
+
+  addTechnician(newTech: Omit<Technician, 'id' | 'isAvailable'>): Technician {
+    const techs = this.getTechnicians();
+    const id = `TECH-${String(Date.now()).slice(-4)}`;
+    const tech: Technician = {
+      ...newTech,
+      id,
+      isAvailable: true,
+    };
+    const updated = [...techs, tech];
+    this.saveTechnicians(updated);
+    return tech;
+  },
+
+  updateTechnician(updatedTech: Technician): void {
+    const techs = this.getTechnicians();
+    const updated = techs.map((t) => (t.id === updatedTech.id ? updatedTech : t));
+    this.saveTechnicians(updated);
+  },
+
+  deleteTechnician(id: string): boolean {
+    const techs = this.getTechnicians();
+    if (techs.length <= 1) {
+      return false; // must keep at least 1 technician
+    }
+    const updated = techs.filter((t) => t.id !== id);
+    this.saveTechnicians(updated);
+    return true;
+  },
+
   resetToDefault(): void {
     localStorage.removeItem(STORAGE_KEYS.TICKETS);
     localStorage.removeItem(STORAGE_KEYS.TECHNICIANS);
     localStorage.removeItem(STORAGE_KEYS.LINE_LOGS);
+    localStorage.removeItem(STORAGE_KEYS.CLOSURE_PASSWORD);
   },
 };
