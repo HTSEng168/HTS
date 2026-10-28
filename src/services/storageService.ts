@@ -230,8 +230,15 @@ export const storageService = {
       if (!data) {
         const defaultConfig: LineNotificationConfig = {
           enabled: true,
-          notifyToken: 'SAMPLE_LINE_NOTIFY_TOKEN',
-          channelWebhookUrl: 'https://notify-api.line.me/api/notify',
+          apiMode: 'messaging_api',
+          channelAccessToken: '',
+          botBasicId: '@073vezfu',
+          botName: 'HTSengineering-BOT',
+          sendMode: 'broadcast',
+          defaultTargetId: '',
+          useFlexMessage: true,
+          notifyToken: '',
+          channelWebhookUrl: '',
           autoNotifyOnCreate: true,
           autoNotifyOnStatusChange: true,
           autoNotifyOnClose: true,
@@ -239,10 +246,36 @@ export const storageService = {
         this.saveLineConfig(defaultConfig);
         return defaultConfig;
       }
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      // Merge with default values in case older schema was cached
+      return {
+        enabled: parsed.enabled ?? true,
+        apiMode: parsed.apiMode || 'messaging_api',
+        channelAccessToken: parsed.channelAccessToken || '',
+        channelSecret: parsed.channelSecret || '',
+        botBasicId: parsed.botBasicId || '@073vezfu',
+        botName: parsed.botName || 'HTSengineering-BOT',
+        sendMode: parsed.sendMode || 'broadcast',
+        defaultTargetId: parsed.defaultTargetId || '',
+        tech1LineId: parsed.tech1LineId || '',
+        tech2LineId: parsed.tech2LineId || '',
+        useFlexMessage: parsed.useFlexMessage ?? true,
+        notifyToken: parsed.notifyToken || '',
+        channelWebhookUrl: parsed.channelWebhookUrl || '',
+        autoNotifyOnCreate: parsed.autoNotifyOnCreate ?? true,
+        autoNotifyOnStatusChange: parsed.autoNotifyOnStatusChange ?? true,
+        autoNotifyOnClose: parsed.autoNotifyOnClose ?? true,
+      };
     } catch {
       return {
         enabled: true,
+        apiMode: 'messaging_api',
+        channelAccessToken: '',
+        botBasicId: '@073vezfu',
+        botName: 'HTSengineering-BOT',
+        sendMode: 'broadcast',
+        defaultTargetId: '',
+        useFlexMessage: true,
         notifyToken: '',
         channelWebhookUrl: '',
         autoNotifyOnCreate: true,

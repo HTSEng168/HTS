@@ -73,12 +73,29 @@ export interface Technician {
   isAvailable: boolean;
   currentTicketId?: string;
   personalPassword?: string;
+  lineUserId?: string; // LINE User ID (e.g. U1234567890abcdef...) for direct alert
 }
+
+export type LineApiMode = 'messaging_api' | 'notify' | 'webhook';
+export type LineSendMode = 'broadcast' | 'push' | 'technician_target';
 
 export interface LineNotificationConfig {
   enabled: boolean;
+  apiMode: LineApiMode;
+  // LINE Messaging API credentials (bot @073vezfu / HTSengineering-BOT)
+  channelAccessToken: string;
+  channelSecret?: string;
+  botBasicId: string;
+  botName: string;
+  sendMode: LineSendMode;
+  defaultTargetId: string; // LINE User ID (U...) or Group ID (C...)
+  tech1LineId?: string;    // ช่างทู LINE ID
+  tech2LineId?: string;    // ช่างต๊ะ LINE ID
+  useFlexMessage: boolean; // Rich Flex Message Card
+  // Legacy LINE Notify
   notifyToken: string;
   channelWebhookUrl: string;
+  // Auto-notify triggers
   autoNotifyOnCreate: boolean;
   autoNotifyOnStatusChange: boolean;
   autoNotifyOnClose: boolean;
@@ -91,4 +108,8 @@ export interface LineMessageLog {
   ticketNumber: string;
   message: string;
   status: 'SENT' | 'FAILED' | 'SIMULATED';
+  mode?: 'MESSAGING_API_PUSH' | 'MESSAGING_API_BROADCAST' | 'LINE_NOTIFY' | 'SIMULATED';
+  details?: string;
+  flexPreview?: any;
 }
+

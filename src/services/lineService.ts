@@ -1,5 +1,6 @@
-import { RepairTicket, LineMessageLog, TicketStatus } from '../types';
+import { RepairTicket, LineMessageLog, TicketStatus, LineNotificationConfig } from '../types';
 import { storageService } from './storageService';
+import { createTicketFlexMessage, createTestFlexMessage } from './lineFlexBuilder';
 
 export const STATUS_LABELS_TH: Record<TicketStatus, { label: string; color: string; badge: string; icon: string }> = {
   PENDING: { label: 'รอดำเนินการ', color: 'text-amber-700 bg-amber-50 border-amber-200', badge: 'bg-amber-500', icon: '⏳' },
@@ -32,7 +33,8 @@ export function formatLineMessage(
 🏷️ แผนกผู้แจ้ง: ${ticket.department} (${ticket.requesterName} โทร: ${ticket.contactNumber})
 ⚡ ความเร่งด่วน: ${PRIORITY_LABELS_TH[ticket.urgency].label}
 🔧 สถานะ: ${statusInfo.icon} ${statusInfo.label}
-🔗 ตรวจสอบงานได้ในแอป Siri Maintenance & Engineering`;
+👨‍🔧 ช่างผู้ดูแล: ${ticket.assignedTechnician ? ticket.assignedTechnician.nickname : 'รอจัดสรรช่าง'}
+📱 ตรวจสอบงานได้ในแอป Siri Maintenance & Engineering`;
   }
 
   if (eventType === 'CLOSED') {
@@ -40,7 +42,7 @@ export function formatLineMessage(
 ⏰ เวลาปิดงาน: ${dateStr} น.
 📌 รายการ: ${ticket.title}
 🏢 จุดที่ตั้ง: ${ticket.building} ${ticket.floor} (${ticket.roomOrSpot})
-👨‍🔧 ช่างผู้ดูแล: ${ticket.assignedTechnician ? ticket.assignedTechnician.name : 'ทีมช่างส่วนกลาง'}
+👨‍🔧 ช่างผู้ดูแล: ${ticket.assignedTechnician ? `${ticket.assignedTechnician.nickname} (${ticket.assignedTechnician.name})` : 'ทีมช่างส่วนกลาง'}
 📝 สรุปการซ่อม: ${ticket.repairNotes || 'ซ่อมแซมและทดสอบเรียบร้อย'}
 💰 ค่าใช้จ่ายรวม: ${ticket.totalCost ? ticket.totalCost.toLocaleString() + ' บาท' : 'ไม่มีค่าใช้จ่าย'}
 ✅ สถานะ: ซ่อมเสร็จสิ้น พร้อมใช้งาน`;
@@ -52,53 +54,257 @@ export function formatLineMessage(
 📌 งาน: ${ticket.title}
 🏢 สถานที่: ${ticket.roomOrSpot}
 🔄 สถานะใหม่: ${statusInfo.icon} ${statusInfo.label}
-${ticket.statusReason ? `💬 เหตุผล/หมายเหตุ: ${ticket.statusReason}` : ''}
-👨‍🔧 ช่างผู้รับผิดชอบ: ${ticket.assignedTechnician ? ticket.assignedTechnician.nickname : 'รอจัดสรรช่าง'}
+${ticket.statusReason ? `💬 หมายเหตุ: ${ticket.statusReason}` : ''}
+👨‍🔧 ช่างผู้รับผิดชอบ: ${ticket.assignedTechnician ? `${ticket.assignedTechnician.nickname} (${ticket.assignedTechnician.name})` : 'รอจัดสรรช่าง'}
 ⏳ ประมาณการเสร็จ: ${ticket.estimatedCompletionTime || 'กำลังประเมิน'}`;
 }
 
 export const lineService = {
+  // Test connection to LINE Bot info (@073vezfu / HTSengineering-BOT)
+  async verifyBotConnection(channelAccessToken: string): Promise<{ success: boolean; bot?: any; error?: string }> {
+    try {
+      const res = await fetch('/api/line/bot-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelAccessToken: channelAccessToken.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'เชื่อมต่อบอทไม่สำเร็จ กรุณาตรวจสอบ Token' };
+      }
+      return { success: true, bot: data.bot };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'ไม่สามารถติดต่อเซอร์เวอร์ API Proxy ได้' };
+    }
+  },
+
+  // Send real test message via Messaging API
+  async sendTestNotification(config: LineNotificationConfig): Promise<{ success: boolean; message: string }> {
+    const token = config.channelAccessToken?.trim();
+    if (!token) {
+      // Simulate test
+      const dummyLog: LineMessageLog = {
+        id: 'log-' + Date.now(),
+        timestamp: new Date().toISOString(),
+        recipient: `บอท ${config.botName} (${config.botBasicId}) [โหมดจำลอง]`,
+        ticketNumber: 'TEST-001',
+        message: `[ทดสอบระบบ] เชื่อมต่อบอท ${config.botName} (${config.botBasicId}) เรียบร้อยแล้ว`,
+        status: 'SIMULATED',
+        mode: 'SIMULATED',
+      };
+      storageService.saveLineLog(dummyLog);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('facilifix-line-alert', {
+            detail: {
+              log: dummyLog,
+              text: dummyLog.message,
+            },
+          })
+        );
+      }
+      return {
+        success: true,
+        message: 'จำลองการแจ้งเตือนสำเร็จ (ใส่ Channel Access Token เพื่อส่งข้อความจริงไปยัง LINE)',
+      };
+    }
+
+    try {
+      const flexMsg = createTestFlexMessage(config.botName, config.botBasicId);
+      const textMsg = {
+        type: 'text',
+        text: `🎉 [Siri Maintenance] ทดสอบเชื่อมต่อ LINE Messaging API สำเร็จ! บอท ${config.botName} (${config.botBasicId}) พร้อมส่งการแจ้งเตือนงานซ่อมแล้ว`,
+      };
+      const messages = config.useFlexMessage ? [flexMsg, textMsg] : [textMsg];
+
+      let endpoint = '/api/line/broadcast';
+      let payload: any = { channelAccessToken: token, messages };
+
+      if (config.sendMode === 'push' && config.defaultTargetId) {
+        endpoint = '/api/line/push';
+        payload = { channelAccessToken: token, to: config.defaultTargetId, messages };
+      }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const resData = await res.json();
+
+      if (!res.ok || !resData.success) {
+        throw new Error(resData.error || 'ส่งข้อความไม่สำเร็จ');
+      }
+
+      const logEntry: LineMessageLog = {
+        id: 'log-' + Date.now(),
+        timestamp: new Date().toISOString(),
+        recipient: config.sendMode === 'broadcast' ? `ผู้ติดตามบอท ${config.botBasicId} (Broadcast)` : `LINE ID: ${config.defaultTargetId}`,
+        ticketNumber: 'TEST-CONNECTION',
+        message: `[ทดสอบจริงผ่าน Messaging API] ส่งไปยัง LINE สำเร็จ`,
+        status: 'SENT',
+        mode: config.sendMode === 'broadcast' ? 'MESSAGING_API_BROADCAST' : 'MESSAGING_API_PUSH',
+        flexPreview: flexMsg,
+      };
+      storageService.saveLineLog(logEntry);
+
+      return {
+        success: true,
+        message: 'ส่งข้อความทดสอบจริงไปยัง LINE สำเร็จเรียบร้อย!',
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: `เกิดข้อผิดพลาด: ${err.message || 'ส่งไม่สำเร็จ'}`,
+      };
+    }
+  },
+
+  // Main notification dispatcher called on ticket create, update, or closure
   async sendNotification(
     ticket: RepairTicket,
     eventType: 'NEW' | 'STATUS_CHANGE' | 'CLOSED'
   ): Promise<{ success: boolean; message: string; simulatedLog: LineMessageLog }> {
     const config = storageService.getLineConfig();
+    if (!config.enabled) {
+      return {
+        success: false,
+        message: 'ระบบแจ้งเตือน LINE ปิดใช้งานอยู่',
+        simulatedLog: {} as LineMessageLog,
+      };
+    }
+
+    // Check trigger rules
+    if (eventType === 'NEW' && !config.autoNotifyOnCreate) {
+      return { success: true, message: 'ข้ามการแจ้งเตือนตามการตั้งค่า', simulatedLog: {} as LineMessageLog };
+    }
+    if (eventType === 'STATUS_CHANGE' && !config.autoNotifyOnStatusChange) {
+      return { success: true, message: 'ข้ามการแจ้งเตือนตามการตั้งค่า', simulatedLog: {} as LineMessageLog };
+    }
+    if (eventType === 'CLOSED' && !config.autoNotifyOnClose) {
+      return { success: true, message: 'ข้ามการแจ้งเตือนตามการตั้งค่า', simulatedLog: {} as LineMessageLog };
+    }
+
     const formattedText = formatLineMessage(ticket, eventType);
+    const flexMessage = createTicketFlexMessage(ticket, eventType);
 
-    const logEntry: LineMessageLog = {
-      id: 'log-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
-      timestamp: new Date().toISOString(),
-      recipient: 'กลุ่ม LINE ช่างซ่อมบำรุงประจำอาคาร (Official Tech Group)',
-      ticketNumber: ticket.ticketNumber,
-      message: formattedText,
-      status: 'SENT',
-    };
+    let sentReal = false;
+    let recipientDesc = `ผู้ติดตามบอท ${config.botBasicId} (Broadcast)`;
+    let logStatus: 'SENT' | 'SIMULATED' | 'FAILED' = 'SIMULATED';
+    let logMode: 'MESSAGING_API_PUSH' | 'MESSAGING_API_BROADCAST' | 'LINE_NOTIFY' | 'SIMULATED' = 'SIMULATED';
 
-    // Save to storage logs
-    storageService.saveLineLog(logEntry);
-
-    // If user configured real Line webhook or notify, we can attempt fetch if no CORS block, or return simulated
-    if (config.enabled && config.notifyToken && config.notifyToken !== 'SAMPLE_LINE_NOTIFY_TOKEN') {
+    // 1. If LINE Messaging API mode & Token exists
+    if (config.apiMode === 'messaging_api' && config.channelAccessToken && config.channelAccessToken.trim()) {
       try {
-        // Attempt sending via LINE Notify endpoint if configured
+        const messages = config.useFlexMessage
+          ? [flexMessage]
+          : [{ type: 'text', text: formattedText }];
+
+        // Determine destination:
+        // Check if ticket has assigned technician with personal lineUserId
+        const techLineId = ticket.assignedTechnician?.id === 'TECH-01' 
+          ? (config.tech1LineId || (ticket.assignedTechnician as any)?.lineUserId)
+          : ticket.assignedTechnician?.id === 'TECH-02'
+          ? (config.tech2LineId || (ticket.assignedTechnician as any)?.lineUserId)
+          : (ticket.assignedTechnician as any)?.lineUserId;
+
+        if (config.sendMode === 'technician_target' && techLineId) {
+          // Push directly to technician
+          const response = await fetch('/api/line/push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              channelAccessToken: config.channelAccessToken.trim(),
+              to: techLineId.trim(),
+              messages,
+            }),
+          });
+          const resJson = await response.json();
+          if (response.ok && resJson.success) {
+            sentReal = true;
+            recipientDesc = `ช่าง ${ticket.assignedTechnician?.nickname} (${techLineId})`;
+            logStatus = 'SENT';
+            logMode = 'MESSAGING_API_PUSH';
+          }
+        } else if (config.sendMode === 'push' && config.defaultTargetId) {
+          // Push to configured User ID or Group ID
+          const response = await fetch('/api/line/push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              channelAccessToken: config.channelAccessToken.trim(),
+              to: config.defaultTargetId.trim(),
+              messages,
+            }),
+          });
+          const resJson = await response.json();
+          if (response.ok && resJson.success) {
+            sentReal = true;
+            recipientDesc = `LINE Target: ${config.defaultTargetId}`;
+            logStatus = 'SENT';
+            logMode = 'MESSAGING_API_PUSH';
+          }
+        } else {
+          // Broadcast to all bot friends (recommended default!)
+          const response = await fetch('/api/line/broadcast', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              channelAccessToken: config.channelAccessToken.trim(),
+              messages,
+            }),
+          });
+          const resJson = await response.json();
+          if (response.ok && resJson.success) {
+            sentReal = true;
+            recipientDesc = `บรอดแคสต์บอท ${config.botBasicId} (ทุกคนที่แอดไลน์)`;
+            logStatus = 'SENT';
+            logMode = 'MESSAGING_API_BROADCAST';
+          }
+        }
+      } catch (err) {
+        console.warn('Real LINE Messaging API fetch failed, falling back to simulated:', err);
+      }
+    } else if (config.apiMode === 'notify' && config.notifyToken && config.notifyToken !== 'SAMPLE_LINE_NOTIFY_TOKEN') {
+      // Legacy LINE Notify
+      try {
         const params = new URLSearchParams();
         params.append('message', formattedText);
-
         await fetch('https://notify-api.line.me/api/notify', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            Authorization: `Bearer ${config.notifyToken}`,
+            Authorization: `Bearer ${config.notifyToken.trim()}`,
           },
           body: params,
-          mode: 'no-cors', // handle browser CORS restriction safely
+          mode: 'no-cors',
         });
+        sentReal = true;
+        recipientDesc = 'LINE Notify Group';
+        logStatus = 'SENT';
+        logMode = 'LINE_NOTIFY';
       } catch (err) {
-        console.warn('Real LINE fetch skipped or restricted by browser CORS, saved simulated payload:', err);
+        console.warn('LINE Notify request failed:', err);
       }
     }
 
-    // Trigger local CustomEvent so the app UI can display a native-looking LINE toast popup
+    const logEntry: LineMessageLog = {
+      id: 'log-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      timestamp: new Date().toISOString(),
+      recipient: recipientDesc,
+      ticketNumber: ticket.ticketNumber,
+      message: formattedText,
+      status: logStatus,
+      mode: logMode,
+      flexPreview: flexMessage,
+    };
+
+    // Save to storage
+    storageService.saveLineLog(logEntry);
+
+    // Trigger local CustomEvent so app displays real-time banner
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('facilifix-line-alert', {
@@ -106,6 +312,8 @@ export const lineService = {
             ticket,
             log: logEntry,
             text: formattedText,
+            sentReal,
+            botBasicId: config.botBasicId,
           },
         })
       );
@@ -113,7 +321,9 @@ export const lineService = {
 
     return {
       success: true,
-      message: 'ส่งการแจ้งเตือน LINE ไปยังกลุ่มช่างสำเร็จ',
+      message: sentReal
+        ? `ส่งการแจ้งเตือนผ่าน LINE Messaging API (@073vezfu) สำเร็จ!`
+        : `บันทึกการแจ้งเตือนจำลองสำเร็จ (พร้อมส่งจริงเมื่อใส่ Channel Access Token)`,
       simulatedLog: logEntry,
     };
   },

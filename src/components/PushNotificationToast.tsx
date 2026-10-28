@@ -3,7 +3,7 @@ import { X, ExternalLink } from 'lucide-react';
 import { PushNotificationPayload } from '../hooks/usePushNotifications';
 
 interface LineAlertEventDetail {
-  ticket: {
+  ticket?: {
     id: string;
     ticketNumber: string;
     queueNumber: string;
@@ -11,11 +11,13 @@ interface LineAlertEventDetail {
     status: string;
     roomOrSpot: string;
   };
-  log: {
+  log?: {
     message: string;
     timestamp: string;
   };
-  text: string;
+  text?: string;
+  sentReal?: boolean;
+  botBasicId?: string;
 }
 
 interface PushNotificationToastProps {
@@ -61,32 +63,40 @@ export const PushNotificationToast: React.FC<PushNotificationToastProps> = ({
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">
-                  LINE แจ้งเตือนช่าง • เดี๋ยวนี้
+                  {lineAlert.sentReal ? 'LINE Messaging API • ส่งจริง' : 'LINE แจ้งเตือนช่าง • จำลอง'}
                 </span>
                 <button
                   onClick={() => setLineAlert(null)}
-                  className="text-white/80 hover:text-white p-0.5 rounded"
+                  className="text-white/80 hover:text-white p-0.5 rounded cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <div className="font-bold text-xs truncate mt-0.5">
-                {lineAlert.ticket.queueNumber} ({lineAlert.ticket.ticketNumber}): {lineAlert.ticket.title}
-              </div>
-              <p className="text-[11px] text-white/90 line-clamp-2 mt-0.5">
-                📍 {lineAlert.ticket.roomOrSpot}
-              </p>
-              {onSelectTicket && (
-                <button
-                  onClick={() => {
-                    onSelectTicket(lineAlert.ticket.id);
-                    setLineAlert(null);
-                  }}
-                  className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 bg-white text-[#06C755] font-bold text-[10px] rounded-lg shadow-xs hover:bg-emerald-50 transition cursor-pointer"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  เปิดดูสถานะงาน
-                </button>
+              {lineAlert.ticket ? (
+                <>
+                  <div className="font-bold text-xs truncate mt-0.5">
+                    {lineAlert.ticket.queueNumber} ({lineAlert.ticket.ticketNumber}): {lineAlert.ticket.title}
+                  </div>
+                  <p className="text-[11px] text-white/90 line-clamp-2 mt-0.5">
+                    📍 {lineAlert.ticket.roomOrSpot}
+                  </p>
+                  {onSelectTicket && (
+                    <button
+                      onClick={() => {
+                        onSelectTicket(lineAlert.ticket!.id);
+                        setLineAlert(null);
+                      }}
+                      className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 bg-white text-[#06C755] font-bold text-[10px] rounded-lg shadow-xs hover:bg-emerald-50 transition cursor-pointer"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      เปิดดูสถานะงาน
+                    </button>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-white mt-1 font-medium">
+                  {lineAlert.text || 'ทดสอบการส่งข้อความผ่าน LINE Messaging API สำเร็จ'}
+                </p>
               )}
             </div>
           </div>
