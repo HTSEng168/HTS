@@ -300,8 +300,76 @@ export const storageService = {
   saveLineConfig(config: LineNotificationConfig): void {
     try {
       localStorage.setItem(STORAGE_KEYS.LINE_CONFIG, JSON.stringify(config));
+      // Asynchronously sync token and group ID to backend server config
+      if (typeof window !== 'undefined' && typeof fetch === 'function') {
+        fetch('/api/line/save-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channelAccessToken: config.channelAccessToken || '',
+            groupId: config.groupId || DEFAULT_LINE_GROUP_ID,
+          }),
+        }).catch((err) => {
+          console.warn('Auto-sync line config to server failed:', err);
+        });
+      }
     } catch (e) {
       console.error('Error saving line config:', e);
+    }
+  },
+
+  async syncLineConfigWithServer(): Promise<{ config: LineNotificationConfig; hasServerToken: boolean }> {
+    const local = this.getLineConfig();
+    try {
+      const res = await fetch('/api/line/config');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          let updated = false;
+          // If server has a token and local is empty (or differs)
+          if (data.token && (!local.channelAccessToken || local.channelAccessToken !== data.token)) {
+            local.channelAccessToken = data.token;
+            updated = true;
+          }
+          if (data.groupId && (!local.groupId || local.groupId !== data.groupId)) {
+            local.groupId = data.groupId;
+            local.defaultTargetId = data.groupId;
+            updated = true;
+          }
+          if (updated) {
+            localStorage.setItem(STORAGE_KEYS.LINE_CONFIG, JSON.stringify(local));
+          }
+          return { config: local, hasServerToken: !!data.hasToken };
+        }
+      }
+    } catch (e) {
+      console.warn('Could not sync LINE config with server:', e);
+    }
+    return { config: local, hasServerToken: !!local.channelAccessToken };
+  },
+
+  async saveTokenToServer(token: string, groupId?: string): Promise<{ success: boolean; message: string; bot?: any; warning?: string }> {
+    try {
+      const res = await fetch('/api/line/save-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channelAccessToken: token.trim(),
+          groupId: (groupId || DEFAULT_LINE_GROUP_ID).trim(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        // Also update local storage
+        const current = this.getLineConfig();
+        current.channelAccessToken = token.trim();
+        if (groupId) current.groupId = groupId.trim();
+        localStorage.setItem(STORAGE_KEYS.LINE_CONFIG, JSON.stringify(current));
+        return { success: true, message: data.message, bot: data.bot, warning: data.warning };
+      }
+      return { success: false, message: data.error || 'บันทึกลงเซิร์ฟเวอร์ไม่สำเร็จ' };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'ติดต่อเซิร์ฟเวอร์ล้มเหลว' };
     }
   },
 

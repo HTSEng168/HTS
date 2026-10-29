@@ -2,9 +2,57 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const CONFIG_FILE = path.resolve(__dirname, 'line-server-config.json');
+
+interface ServerLineConfig {
+  channelAccessToken: string;
+  groupId: string;
+  botBasicId: string;
+  botName: string;
+}
+
+function loadServerConfig(): ServerLineConfig {
+  let config: ServerLineConfig = {
+    channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || '',
+    groupId: process.env.LINE_TARGET_GROUP_ID || 'C2f466a90ac4f15b1f9231c889e23d3d7',
+    botBasicId: '@073vezfu',
+    botName: 'HTSengineering-BOT',
+  };
+
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      const data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+      config = { ...config, ...data };
+    }
+  } catch (err) {
+    console.warn('Could not read line-server-config.json:', err);
+  }
+
+  return config;
+}
+
+function saveServerConfig(newConfig: Partial<ServerLineConfig>) {
+  try {
+    const current = loadServerConfig();
+    const updated = { ...current, ...newConfig };
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(updated, null, 2), 'utf-8');
+    if (updated.channelAccessToken) {
+      process.env.LINE_CHANNEL_ACCESS_TOKEN = updated.channelAccessToken;
+    }
+    if (updated.groupId) {
+      process.env.LINE_TARGET_GROUP_ID = updated.groupId;
+    }
+    return updated;
+  } catch (err) {
+    console.error('Failed to write line-server-config.json:', err);
+    throw err;
+  }
+}
 
 async function startServer() {
   const app = express();
@@ -26,23 +74,98 @@ async function startServer() {
     });
   });
 
+  // Get current LINE server config (persistent channelAccessToken & groupId)
+  apiRouter.get('/line/config', (_req, res) => {
+    const current = loadServerConfig();
+    const token = current.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
+    const tokenPreview = token ? `${token.substring(0, 10)}...${token.substring(token.length - 8)}` : '';
+    res.json({
+      success: true,
+      hasToken: !!token,
+      tokenPreview,
+      token, // provided so client can auto-load and avoid manual re-entry
+      groupId: current.groupId || 'C2f466a90ac4f15b1f9231c889e23d3d7',
+      botBasicId: current.botBasicId || '@073vezfu',
+      botName: current.botName || 'HTSengineering-BOT',
+    });
+  });
+
+  // Save Channel Access Token and Group ID permanently to server config
+  apiRouter.post('/line/save-token', async (req, res) => {
+    try {
+      const { channelAccessToken, groupId } = req.body;
+      if (channelAccessToken === undefined && groupId === undefined) {
+        return res.status(400).json({ success: false, error: 'กรุณาระบุข้อมูลที่ต้องการบันทึก' });
+      }
+
+      const payload: Partial<ServerLineConfig> = {};
+      if (channelAccessToken !== undefined) {
+        payload.channelAccessToken = String(channelAccessToken).trim();
+      }
+      if (groupId !== undefined) {
+        payload.groupId = String(groupId).trim() || 'C2f466a90ac4f15b1f9231c889e23d3d7';
+      }
+
+      const updated = saveServerConfig(payload);
+
+      let botInfo = null;
+      let verifyWarning = null;
+      if (updated.channelAccessToken) {
+        try {
+          const verifyRes = await fetch('https://api.line.me/v2/bot/info', {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${updated.channelAccessToken}`,
+            },
+          });
+          if (verifyRes.ok) {
+            botInfo = await verifyRes.json();
+          } else {
+            const errData = await verifyRes.json().catch(() => ({}));
+            verifyWarning = (errData as any)?.message || 'Token อาจไม่ถูกต้องหรือหมดอายุ';
+          }
+        } catch (e: any) {
+          verifyWarning = e?.message;
+        }
+      }
+
+      return res.json({
+        success: true,
+        message: 'บันทึก Channel Access Token (Long-lived) ถาวรลงเซิร์ฟเวอร์เรียบร้อยแล้ว',
+        hasToken: !!updated.channelAccessToken,
+        token: updated.channelAccessToken,
+        tokenPreview: updated.channelAccessToken ? `${updated.channelAccessToken.substring(0, 10)}...` : '',
+        groupId: updated.groupId,
+        bot: botInfo,
+        warning: verifyWarning,
+      });
+    } catch (err: any) {
+      console.error('Error saving line token:', err);
+      return res.status(500).json({
+        success: false,
+        error: err?.message || 'ไม่สามารถบันทึก Channel Access Token ได้',
+      });
+    }
+  });
+
   // Verify / Test Channel Access Token & Get Bot Info
   apiRouter.post('/line/bot-info', async (req, res) => {
     try {
       const { channelAccessToken } = req.body;
-      const token = channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN;
+      const serverCfg = loadServerConfig();
+      const token = (channelAccessToken || serverCfg.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN || '').trim();
 
       if (!token) {
         return res.status(400).json({
           success: false,
-          error: 'กรุณาระบุ Channel Access Token',
+          error: 'ยังไม่ได้ระบุหรือบันทึก Channel Access Token ในระบบ',
         });
       }
 
       const response = await fetch('https://api.line.me/v2/bot/info', {
         method: 'GET',
         headers: {
-          Authorization: `Bearer ${token.trim()}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -73,16 +196,18 @@ async function startServer() {
   apiRouter.post('/line/push', async (req, res) => {
     try {
       const { channelAccessToken, to, messages } = req.body;
-      const token = channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN;
+      const serverCfg = loadServerConfig();
+      const token = (channelAccessToken || serverCfg.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN || '').trim();
+      const targetTo = (to || serverCfg.groupId || process.env.LINE_TARGET_GROUP_ID || 'C2f466a90ac4f15b1f9231c889e23d3d7').trim();
 
       if (!token) {
         return res.status(400).json({
           success: false,
-          error: 'กรุณาระบุ Channel Access Token',
+          error: 'ยังไม่ได้บันทึก Channel Access Token (Long-lived) ในระบบ กรุณาบันทึกโทเคนก่อนส่งข้อความ',
         });
       }
 
-      if (!to) {
+      if (!targetTo) {
         return res.status(400).json({
           success: false,
           error: 'กรุณาระบุ Target ID (User ID หรือ Group ID)',
@@ -100,10 +225,10 @@ async function startServer() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token.trim()}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          to: to.trim(),
+          to: targetTo,
           messages: messages.slice(0, 5), // LINE allows max 5 messages per call
         }),
       });
@@ -121,6 +246,7 @@ async function startServer() {
       return res.json({
         success: true,
         message: 'ส่งข้อความแจ้งเตือนผ่าน LINE สำเร็จ',
+        target: targetTo,
         data,
       });
     } catch (err: any) {
@@ -136,12 +262,13 @@ async function startServer() {
   apiRouter.post('/line/broadcast', async (req, res) => {
     try {
       const { channelAccessToken, messages } = req.body;
-      const token = channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN;
+      const serverCfg = loadServerConfig();
+      const token = (channelAccessToken || serverCfg.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN || '').trim();
 
       if (!token) {
         return res.status(400).json({
           success: false,
-          error: 'กรุณาระบุ Channel Access Token',
+          error: 'ยังไม่ได้บันทึก Channel Access Token ในระบบ',
         });
       }
 
@@ -156,7 +283,7 @@ async function startServer() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token.trim()}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           messages: messages.slice(0, 5),
@@ -191,12 +318,13 @@ async function startServer() {
   apiRouter.post('/line/multicast', async (req, res) => {
     try {
       const { channelAccessToken, to, messages } = req.body;
-      const token = channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN;
+      const serverCfg = loadServerConfig();
+      const token = (channelAccessToken || serverCfg.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN || '').trim();
 
       if (!token) {
         return res.status(400).json({
           success: false,
-          error: 'กรุณาระบุ Channel Access Token',
+          error: 'ยังไม่ได้บันทึก Channel Access Token ในระบบ',
         });
       }
 
@@ -211,7 +339,7 @@ async function startServer() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token.trim()}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           to: to.map((id: string) => id.trim()),

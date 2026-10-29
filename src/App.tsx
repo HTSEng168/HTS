@@ -46,6 +46,7 @@ export default function App() {
   useEffect(() => {
     setTickets(storageService.getTickets());
     setTechnicians(storageService.getTechnicians());
+    storageService.syncLineConfigWithServer().catch(() => {});
   }, []);
 
   // Sync tickets changes to storage
