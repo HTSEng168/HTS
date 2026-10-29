@@ -82,14 +82,15 @@ export type LineSendMode = 'group' | 'broadcast' | 'push' | 'technician_target';
 export interface LineNotificationConfig {
   enabled: boolean;
   apiMode: LineApiMode;
-  // LINE Messaging API credentials (bot @073vezfu / HTSengineering-BOT)
+  // LINE Messaging API credentials (bot @985anugd / HTS-BOT)
   channelAccessToken: string;
   channelSecret?: string;
   botBasicId: string;
   botName: string;
   sendMode: LineSendMode;
-  groupId: string;         // LINE Group ID (ค่าเริ่มต้น: C2f466a90ac4f15b1f9231c889e23d3d7)
+  groupId: string;         // LINE Group ID (ค่าเริ่มต้น: C855d26f70609970989ec42237d9b8dfd)
   defaultTargetId: string; // LINE User ID (U...) or Group ID (C...)
+  targetUserId?: string;   // LINE User ID (U08db932f1381cbfa4b1d8063b059f67d)
   tech1LineId?: string;    // ช่างทู LINE ID
   tech2LineId?: string;    // ช่างต๊ะ LINE ID
   useFlexMessage: boolean; // Rich Flex Message Card

@@ -12,12 +12,14 @@ const CONFIG_FILE = path.resolve(__dirname, 'line-server-config.json');
 // System-locked credentials embedded into the application
 export const SYSTEM_LOCKED_LINE_TOKEN = 'Dx0V4cHaU9Lt0GvZeST+HwAz6oeghe9YOERflKvYQg3YYeYOJQSXu0+hNdlNMXJcQR/wWhOxFqL1m4K8uGFvDUiwnu8m49ioAC7AkYSBsUSfEQb345/zQZ8Dbb1gEA82maLBoszw/sQFlO4Ng769/wdB04t89/1O/w1cDnyilFU=';
 export const SYSTEM_LOCKED_GROUP_ID = 'C855d26f70609970989ec42237d9b8dfd';
+export const SYSTEM_LOCKED_USER_ID = 'U08db932f1381cbfa4b1d8063b059f67d';
 export const SYSTEM_LOCKED_BOT_ID = '@985anugd';
 export const SYSTEM_LOCKED_BOT_NAME = 'HTS-BOT';
 
 interface ServerLineConfig {
   channelAccessToken: string;
   groupId: string;
+  userId?: string;
   botBasicId: string;
   botName: string;
 }
@@ -26,6 +28,7 @@ function loadServerConfig(): ServerLineConfig {
   let config: ServerLineConfig = {
     channelAccessToken: SYSTEM_LOCKED_LINE_TOKEN,
     groupId: SYSTEM_LOCKED_GROUP_ID,
+    userId: SYSTEM_LOCKED_USER_ID,
     botBasicId: SYSTEM_LOCKED_BOT_ID,
     botName: SYSTEM_LOCKED_BOT_NAME,
   };
@@ -98,6 +101,7 @@ async function startServer() {
       tokenPreview,
       token, // provided so client can auto-load and avoid manual re-entry
       groupId: current.groupId || SYSTEM_LOCKED_GROUP_ID,
+      userId: current.userId || SYSTEM_LOCKED_USER_ID,
       botBasicId: current.botBasicId || SYSTEM_LOCKED_BOT_ID,
       botName: current.botName || SYSTEM_LOCKED_BOT_NAME,
     });

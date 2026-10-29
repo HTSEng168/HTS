@@ -12,6 +12,7 @@ import {
   AlertCircle, 
   QrCode, 
   Users, 
+  User,
   Sparkles,
   RefreshCw,
   Eye,
@@ -380,38 +381,68 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                 )}
               </div>
 
-              {/* Group ID Configuration Section (Locked) */}
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <label className="block text-xs font-bold text-slate-800">
-                      LINE Group ID เป้าหมายสำหรับรับแจ้งเตือน
-                    </label>
-                    <span className="text-[10px] bg-slate-100 text-slate-700 font-semibold px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
-                      🔒 กลุ่มหลักฝังในแอป
+              {/* Group ID & User ID Configuration Section (Locked) */}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+                {/* Target Group ID */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <label className="block text-xs font-bold text-slate-800">
+                        LINE Group ID เป้าหมายหลัก (ส่งเข้ากลุ่ม)
+                      </label>
+                      <span className="text-[10px] bg-slate-100 text-slate-700 font-semibold px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
+                        🔒 กลุ่มหลักฝังในแอป
+                      </span>
+                    </div>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                      ✓ เชื่อมต่อสำเร็จ
                     </span>
                   </div>
-                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                    ✓ ค่าเริ่มต้นถาวร
-                  </span>
+
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={config.groupId || 'C855d26f70609970989ec42237d9b8dfd'}
+                      readOnly
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono font-bold text-slate-900 outline-none pr-10 cursor-not-allowed select-all"
+                    />
+                    <Users className="w-4 h-4 text-emerald-600 absolute right-3 top-3 pointer-events-none" />
+                  </div>
                 </div>
 
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={config.groupId || DEFAULT_LINE_GROUP_ID}
-                    readOnly
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono font-bold text-slate-900 outline-none pr-10 cursor-not-allowed select-all"
-                  />
-                  <Users className="w-4 h-4 text-blue-600 absolute right-3 top-3 pointer-events-none" />
+                {/* Target User ID */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <label className="block text-xs font-bold text-slate-800">
+                        LINE User ID (สำหรับแจ้งเตือนส่วนตัว/แอดมิน)
+                      </label>
+                      <span className="text-[10px] bg-slate-100 text-slate-700 font-semibold px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
+                        🔒 ฝังในแอป
+                      </span>
+                    </div>
+                    <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
+                      ✓ พร้อมใช้งาน
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value="U08db932f1381cbfa4b1d8063b059f67d"
+                      readOnly
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono font-bold text-slate-900 outline-none pr-10 cursor-not-allowed select-all"
+                    />
+                    <User className="w-4 h-4 text-blue-600 absolute right-3 top-3 pointer-events-none" />
+                  </div>
                 </div>
 
-                <div className="flex items-start gap-2 text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                  <span className="text-base leading-none">💡</span>
+                <div className="flex items-start gap-2 text-[11px] text-emerald-900 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
-                    <span>ข้อมูลงานซ่อมทั้งหมดจะถูกยิงเข้ากลุ่มไลน์ ID: </span>
-                    <strong className="font-mono text-slate-900 bg-white px-1.5 py-0.5 rounded border border-slate-300">{config.groupId || DEFAULT_LINE_GROUP_ID}</strong>
-                    <span> โดยอัตโนมัติ (อย่าลืมเชิญบอท <strong>{config.botBasicId || '@985anugd'}</strong> เข้ากลุ่ม)</span>
+                    <span>ข้อมูลงานซ่อมและคิวงานทั้งหมดถูกส่งเข้ากลุ่ม LINE ID: </span>
+                    <strong className="font-mono text-emerald-950 bg-white px-1.5 py-0.5 rounded border border-emerald-300">C855d26f70609970989ec42237d9b8dfd</strong>
+                    <span> โดยตรงแบบเรียลไทม์เรียบร้อยแล้ว</span>
                   </div>
                 </div>
               </div>
