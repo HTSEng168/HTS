@@ -252,16 +252,51 @@ async function startServer() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
+        // If push failed (e.g. 400 Failed to send messages because bot has not been invited to group yet)
+        // Automatically fallback to Broadcast so messages are never lost!
+        try {
+          const broadcastRes = await fetch('https://api.line.me/v2/bot/message/broadcast', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              messages: messages.slice(0, 5),
+            }),
+          });
+          const broadcastData = await broadcastRes.json().catch(() => ({}));
+
+          if (broadcastRes.ok) {
+            console.log('✅ Fallback to Broadcast succeeded for LINE message');
+            return res.json({
+              success: true,
+              deliveredVia: 'broadcast',
+              message: 'ส่งแจ้งเตือนเข้า LINE สำเร็จ (ระบบบรอดแคสต์ส่งถึงช่างทุกคนอัตโนมัติ)',
+              warning: `บอท HTS-BOT (@985anugd) ยังไม่ได้อยู่ในกลุ่ม LINE (${targetTo}) ระบบจึงบรอดแคสต์ส่งตรงถึงช่างและผู้ติดตามทุกคนแทน เพื่อให้ได้รับข้อมูลแน่นอน 100% • คำแนะนำ: เชิญบอท @985anugd เข้ากลุ่ม LINE เพื่อให้ข้อความแสดงในกลุ่ม`,
+              data: broadcastData,
+            });
+          }
+        } catch (bErr) {
+          console.warn('Fallback broadcast failed:', bErr);
+        }
+
+        let userFriendlyError = (data as any)?.message || 'ส่งข้อความ LINE Push ไม่สำเร็จ';
+        if (userFriendlyError === 'Failed to send messages') {
+          userFriendlyError = `บอท HTS-BOT (@985anugd) ยังไม่ได้รับเชิญเข้ากลุ่ม LINE (${targetTo}) หรือยังไม่ได้เปิดอนุญาตให้บอทเข้ากลุ่มใน LINE Official Account Manager กรุณาเชิญบอท @985anugd เข้ากลุ่ม`;
+        }
+
         return res.status(response.status).json({
           success: false,
-          error: (data as any)?.message || 'ส่งข้อความ LINE Push ไม่สำเร็จ',
+          error: userFriendlyError,
           details: data,
         });
       }
 
       return res.json({
         success: true,
-        message: 'ส่งข้อความแจ้งเตือนผ่าน LINE สำเร็จ',
+        deliveredVia: 'push',
+        message: 'ส่งข้อความแจ้งเตือนเข้ากลุ่ม LINE สำเร็จ',
         target: targetTo,
         data,
       });
@@ -387,9 +422,21 @@ async function startServer() {
     }
   });
 
-  // Webhook receiver for LINE Bot (supports verify ping and basic greeting)
+  // Webhook receiver for LINE Bot (supports verify ping, group join, and auto-detecting group ID)
   apiRouter.post('/line/webhook', (req, res) => {
-    console.log('Received LINE Webhook event:', JSON.stringify(req.body, null, 2));
+    try {
+      console.log('Received LINE Webhook event:', JSON.stringify(req.body, null, 2));
+      const events = req.body?.events || [];
+      for (const ev of events) {
+        if (ev.source?.groupId) {
+          const detectedGroupId = String(ev.source.groupId).trim();
+          console.log(`🎯 Auto-detected active LINE Group ID from webhook: ${detectedGroupId}`);
+          saveServerConfig({ groupId: detectedGroupId });
+        }
+      }
+    } catch (err) {
+      console.warn('Error processing webhook event:', err);
+    }
     res.status(200).json({ status: 'ok' });
   });
 

@@ -124,21 +124,26 @@ export const lineService = {
       const resData = await res.json().catch(() => ({}));
 
       if (res.ok && resData.success) {
+        const isBroadcastFallback = resData.deliveredVia === 'broadcast';
         const logEntry: LineMessageLog = {
           id: 'log-' + Date.now(),
           timestamp: new Date().toISOString(),
-          recipient: recipientLabel,
+          recipient: isBroadcastFallback ? `ผู้ติดตามบอททุกคน (Broadcast Fallback)` : recipientLabel,
           ticketNumber: 'TEST-CONNECTION',
-          message: `[ทดสอบจริงผ่าน Messaging API] ส่งเข้า ${recipientLabel} สำเร็จ`,
+          message: isBroadcastFallback 
+            ? `[ส่งจริงทาง LINE] บรอดแคสต์ส่งถึงช่างและผู้ติดตามทุกคนเรียบร้อย (เนื่องจากบอทยังไม่ได้อยู่ในกลุ่ม ${targetGroupId})`
+            : `[ส่งจริงทาง LINE] ส่งเข้า ${recipientLabel} สำเร็จ`,
           status: 'SENT',
-          mode: modeType,
+          mode: isBroadcastFallback ? 'MESSAGING_API_BROADCAST' : modeType,
           flexPreview: flexMsg,
         };
         storageService.saveLineLog(logEntry);
 
         return {
           success: true,
-          message: `🚀 ส่งข้อความทดสอบจริงเข้ากลุ่ม LINE (${targetGroupId}) สำเร็จเรียบร้อย!`,
+          message: isBroadcastFallback
+            ? `✓ ส่งข้อความเข้า LINE สำเร็จเรียบร้อย! (ระบบบรอดแคสต์ส่งถึงช่างทุกคนอัตโนมัติ) 💡 แนะนำ: เชิญบอท ${config.botBasicId || '@985anugd'} เข้ากลุ่ม ${targetGroupId} เพื่อให้ข้อความขึ้นในห้องแชทกลุ่ม`
+            : `🚀 ส่งข้อความทดสอบจริงเข้ากลุ่ม LINE (${targetGroupId}) สำเร็จเรียบร้อย!`,
         };
       }
 
@@ -239,9 +244,11 @@ export const lineService = {
           const resJson = await response.json().catch(() => ({}));
           if (response.ok && resJson.success) {
             sentReal = true;
-            recipientDesc = `กลุ่ม LINE (ID: ${defaultGroup})`;
+            recipientDesc = resJson.deliveredVia === 'broadcast'
+              ? `ผู้ติดตามบอททุกคน (Broadcast Fallback)`
+              : `กลุ่ม LINE (ID: ${defaultGroup})`;
             logStatus = 'SENT';
-            logMode = 'MESSAGING_API_PUSH';
+            logMode = resJson.deliveredVia === 'broadcast' ? 'MESSAGING_API_BROADCAST' : 'MESSAGING_API_PUSH';
           }
         } else if (config.sendMode === 'technician_target' && techLineId) {
           // Push directly to technician
