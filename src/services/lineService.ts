@@ -81,14 +81,22 @@ export const lineService = {
   // Send real test message via Messaging API
   async sendTestNotification(config: LineNotificationConfig): Promise<{ success: boolean; message: string }> {
     const token = config.channelAccessToken?.trim();
+    const targetGroupId = config.groupId || config.defaultTargetId || 'C2f466a90ac4f15b1f9231c889e23d3d7';
+
     if (!token) {
       // Simulate test
+      const recipientName = config.sendMode === 'group'
+        ? `กลุ่ม LINE ช่างซ่อม (Group ID: ${targetGroupId}) [โหมดจำลอง]`
+        : config.sendMode === 'push'
+        ? `LINE Target: ${config.defaultTargetId || targetGroupId} [โหมดจำลอง]`
+        : `บอท ${config.botName} (${config.botBasicId}) [โหมดจำลอง]`;
+
       const dummyLog: LineMessageLog = {
         id: 'log-' + Date.now(),
         timestamp: new Date().toISOString(),
-        recipient: `บอท ${config.botName} (${config.botBasicId}) [โหมดจำลอง]`,
+        recipient: recipientName,
         ticketNumber: 'TEST-001',
-        message: `[ทดสอบระบบ] เชื่อมต่อบอท ${config.botName} (${config.botBasicId}) เรียบร้อยแล้ว`,
+        message: `[ทดสอบระบบ] ส่งแจ้งเตือนเข้ากลุ่ม LINE (${targetGroupId}) สำเร็จ`,
         status: 'SIMULATED',
         mode: 'SIMULATED',
       };
@@ -106,7 +114,7 @@ export const lineService = {
       }
       return {
         success: true,
-        message: 'จำลองการแจ้งเตือนสำเร็จ (ใส่ Channel Access Token เพื่อส่งข้อความจริงไปยัง LINE)',
+        message: `จำลองการแจ้งเตือนเข้ากลุ่ม LINE (${targetGroupId}) สำเร็จ! (ใส่ Channel Access Token เพื่อยิงเข้ากลุ่ม LINE จริง)`,
       };
     }
 
@@ -114,17 +122,33 @@ export const lineService = {
       const flexMsg = createTestFlexMessage(config.botName, config.botBasicId);
       const textMsg = {
         type: 'text',
-        text: `🎉 [Siri Maintenance] ทดสอบเชื่อมต่อ LINE Messaging API สำเร็จ! บอท ${config.botName} (${config.botBasicId}) พร้อมส่งการแจ้งเตือนงานซ่อมแล้ว`,
+        text: `🎉 [Siri Maintenance] ทดสอบเชื่อมต่อ LINE สำเร็จ! ส่งข้อมูลแจ้งซ่อมเข้ากลุ่ม ID: ${targetGroupId} อัตโนมัติ (บอท ${config.botName})`,
       };
       const messages = config.useFlexMessage ? [flexMsg, textMsg] : [textMsg];
 
-      let endpoint = '/api/line/broadcast';
-      let payload: any = { channelAccessToken: token, messages };
+      let endpoint = '/api/line/push';
+      let targetId = targetGroupId;
+      let recipientLabel = `กลุ่ม LINE ช่างซ่อม (Group ID: ${targetGroupId})`;
+      let modeType: 'MESSAGING_API_PUSH' | 'MESSAGING_API_BROADCAST' = 'MESSAGING_API_PUSH';
 
-      if (config.sendMode === 'push' && config.defaultTargetId) {
+      if (config.sendMode === 'broadcast') {
+        endpoint = '/api/line/broadcast';
+        recipientLabel = `ผู้ติดตามบอท ${config.botBasicId} (Broadcast)`;
+        modeType = 'MESSAGING_API_BROADCAST';
+      } else if (config.sendMode === 'push') {
         endpoint = '/api/line/push';
-        payload = { channelAccessToken: token, to: config.defaultTargetId, messages };
+        targetId = config.defaultTargetId || targetGroupId;
+        recipientLabel = `LINE ID: ${targetId}`;
+      } else {
+        // default: 'group'
+        endpoint = '/api/line/push';
+        targetId = targetGroupId;
+        recipientLabel = `กลุ่ม LINE ช่างซ่อม (Group ID: ${targetGroupId})`;
       }
+
+      const payload = config.sendMode === 'broadcast'
+        ? { channelAccessToken: token, messages }
+        : { channelAccessToken: token, to: targetId, messages };
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -141,23 +165,23 @@ export const lineService = {
       const logEntry: LineMessageLog = {
         id: 'log-' + Date.now(),
         timestamp: new Date().toISOString(),
-        recipient: config.sendMode === 'broadcast' ? `ผู้ติดตามบอท ${config.botBasicId} (Broadcast)` : `LINE ID: ${config.defaultTargetId}`,
+        recipient: recipientLabel,
         ticketNumber: 'TEST-CONNECTION',
-        message: `[ทดสอบจริงผ่าน Messaging API] ส่งไปยัง LINE สำเร็จ`,
+        message: `[ทดสอบจริงผ่าน Messaging API] ส่งเข้า ${recipientLabel} สำเร็จ`,
         status: 'SENT',
-        mode: config.sendMode === 'broadcast' ? 'MESSAGING_API_BROADCAST' : 'MESSAGING_API_PUSH',
+        mode: modeType,
         flexPreview: flexMsg,
       };
       storageService.saveLineLog(logEntry);
 
       return {
         success: true,
-        message: 'ส่งข้อความทดสอบจริงไปยัง LINE สำเร็จเรียบร้อย!',
+        message: `ส่งข้อความทดสอบจริงเข้ากลุ่ม LINE (${targetGroupId}) สำเร็จเรียบร้อย!`,
       };
     } catch (err: any) {
       return {
         success: false,
-        message: `เกิดข้อผิดพลาด: ${err.message || 'ส่งไม่สำเร็จ'}`,
+        message: `เกิดข้อผิดพลาด: ${err.message || 'ส่งไม่สำเร็จ (ตรวจสอบว่าเชิญบอท @073vezfu เข้ากลุ่มหรือยัง)'}`,
       };
     }
   },
@@ -168,6 +192,8 @@ export const lineService = {
     eventType: 'NEW' | 'STATUS_CHANGE' | 'CLOSED'
   ): Promise<{ success: boolean; message: string; simulatedLog: LineMessageLog }> {
     const config = storageService.getLineConfig();
+    const defaultGroup = config.groupId || config.defaultTargetId || 'C2f466a90ac4f15b1f9231c889e23d3d7';
+
     if (!config.enabled) {
       return {
         success: false,
@@ -191,7 +217,7 @@ export const lineService = {
     const flexMessage = createTicketFlexMessage(ticket, eventType);
 
     let sentReal = false;
-    let recipientDesc = `ผู้ติดตามบอท ${config.botBasicId} (Broadcast)`;
+    let recipientDesc = `กลุ่ม LINE ช่างซ่อม (Group ID: ${defaultGroup})`;
     let logStatus: 'SENT' | 'SIMULATED' | 'FAILED' = 'SIMULATED';
     let logMode: 'MESSAGING_API_PUSH' | 'MESSAGING_API_BROADCAST' | 'LINE_NOTIFY' | 'SIMULATED' = 'SIMULATED';
 
@@ -202,15 +228,32 @@ export const lineService = {
           ? [flexMessage]
           : [{ type: 'text', text: formattedText }];
 
-        // Determine destination:
-        // Check if ticket has assigned technician with personal lineUserId
+        // Check assigned technician lineId
         const techLineId = ticket.assignedTechnician?.id === 'TECH-01' 
           ? (config.tech1LineId || (ticket.assignedTechnician as any)?.lineUserId)
           : ticket.assignedTechnician?.id === 'TECH-02'
           ? (config.tech2LineId || (ticket.assignedTechnician as any)?.lineUserId)
           : (ticket.assignedTechnician as any)?.lineUserId;
 
-        if (config.sendMode === 'technician_target' && techLineId) {
+        if (config.sendMode === 'group' || (!config.sendMode && defaultGroup)) {
+          // Default Mode: Send directly to the specified LINE Group ID
+          const response = await fetch('/api/line/push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              channelAccessToken: config.channelAccessToken.trim(),
+              to: defaultGroup.trim(),
+              messages,
+            }),
+          });
+          const resJson = await response.json();
+          if (response.ok && resJson.success) {
+            sentReal = true;
+            recipientDesc = `กลุ่ม LINE (ID: ${defaultGroup})`;
+            logStatus = 'SENT';
+            logMode = 'MESSAGING_API_PUSH';
+          }
+        } else if (config.sendMode === 'technician_target' && techLineId) {
           // Push directly to technician
           const response = await fetch('/api/line/push', {
             method: 'POST',
@@ -247,7 +290,7 @@ export const lineService = {
             logMode = 'MESSAGING_API_PUSH';
           }
         } else {
-          // Broadcast to all bot friends (recommended default!)
+          // Broadcast to all bot friends
           const response = await fetch('/api/line/broadcast', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

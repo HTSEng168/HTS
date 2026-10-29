@@ -180,6 +180,7 @@ const STORAGE_KEYS = {
 };
 
 export const DEFAULT_CLOSURE_PASSWORD = 'HTS168eng';
+export const DEFAULT_LINE_GROUP_ID = 'C2f466a90ac4f15b1f9231c889e23d3d7';
 
 export const storageService = {
   getTickets(): RepairTicket[] {
@@ -234,8 +235,9 @@ export const storageService = {
           channelAccessToken: '',
           botBasicId: '@073vezfu',
           botName: 'HTSengineering-BOT',
-          sendMode: 'broadcast',
-          defaultTargetId: '',
+          sendMode: 'group',
+          groupId: DEFAULT_LINE_GROUP_ID,
+          defaultTargetId: DEFAULT_LINE_GROUP_ID,
           useFlexMessage: true,
           notifyToken: '',
           channelWebhookUrl: '',
@@ -248,15 +250,18 @@ export const storageService = {
       }
       const parsed = JSON.parse(data);
       // Merge with default values in case older schema was cached
-      return {
+      const updatedConfig: LineNotificationConfig = {
         enabled: parsed.enabled ?? true,
         apiMode: parsed.apiMode || 'messaging_api',
         channelAccessToken: parsed.channelAccessToken || '',
         channelSecret: parsed.channelSecret || '',
         botBasicId: parsed.botBasicId || '@073vezfu',
         botName: parsed.botName || 'HTSengineering-BOT',
-        sendMode: parsed.sendMode || 'broadcast',
-        defaultTargetId: parsed.defaultTargetId || '',
+        sendMode: parsed.sendMode === 'group' || !parsed.sendMode || parsed.sendMode === 'broadcast' 
+          ? 'group' 
+          : parsed.sendMode,
+        groupId: parsed.groupId || DEFAULT_LINE_GROUP_ID,
+        defaultTargetId: parsed.defaultTargetId || parsed.groupId || DEFAULT_LINE_GROUP_ID,
         tech1LineId: parsed.tech1LineId || '',
         tech2LineId: parsed.tech2LineId || '',
         useFlexMessage: parsed.useFlexMessage ?? true,
@@ -266,6 +271,12 @@ export const storageService = {
         autoNotifyOnStatusChange: parsed.autoNotifyOnStatusChange ?? true,
         autoNotifyOnClose: parsed.autoNotifyOnClose ?? true,
       };
+
+      // Ensure default group ID is persisted if it was missing
+      if (!parsed.groupId || !parsed.defaultTargetId || parsed.sendMode === 'broadcast') {
+        this.saveLineConfig(updatedConfig);
+      }
+      return updatedConfig;
     } catch {
       return {
         enabled: true,
@@ -273,8 +284,9 @@ export const storageService = {
         channelAccessToken: '',
         botBasicId: '@073vezfu',
         botName: 'HTSengineering-BOT',
-        sendMode: 'broadcast',
-        defaultTargetId: '',
+        sendMode: 'group',
+        groupId: DEFAULT_LINE_GROUP_ID,
+        defaultTargetId: DEFAULT_LINE_GROUP_ID,
         useFlexMessage: true,
         notifyToken: '',
         channelWebhookUrl: '',

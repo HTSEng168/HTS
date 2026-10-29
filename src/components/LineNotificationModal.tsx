@@ -19,7 +19,7 @@ import {
   Copy,
   Check
 } from 'lucide-react';
-import { storageService } from '../services/storageService';
+import { storageService, DEFAULT_LINE_GROUP_ID } from '../services/storageService';
 import { lineService } from '../services/lineService';
 import { LineNotificationConfig, LineMessageLog } from '../types';
 
@@ -307,10 +307,46 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
 
               {/* Delivery Mode Selection */}
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
-                <label className="block text-xs font-bold text-slate-800">
-                  รูปแบบการส่งแจ้งเตือน (Send Mode)
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-800">
+                    รูปแบบการส่งแจ้งเตือน (Send Mode)
+                  </label>
+                  <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-semibold border border-emerald-200 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-[#06C755]" />
+                    ค่าเริ่มต้น: กลุ่ม LINE
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {/* Option 1: LINE Group (Default) */}
+                  <label
+                    className={`p-3 rounded-xl border cursor-pointer transition flex flex-col justify-between sm:col-span-2 ${
+                      config.sendMode === 'group'
+                        ? 'border-[#06C755] bg-emerald-50/50 text-[#06C755] ring-2 ring-[#06C755]/20'
+                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="sendMode"
+                          checked={config.sendMode === 'group'}
+                          onChange={() => setConfig({ ...config, sendMode: 'group', groupId: config.groupId || DEFAULT_LINE_GROUP_ID })}
+                          className="text-[#06C755] focus:ring-[#06C755]"
+                        />
+                        <span className="font-bold text-xs sm:text-sm">👥 ส่งเข้ากลุ่ม LINE (Group ID) [ค่าเริ่มต้น]</span>
+                      </div>
+                      <span className="text-[10px] bg-[#06C755] text-white px-2 py-0.5 rounded-full font-bold">
+                        แนะนำสำหรับทีมช่าง
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-600 mt-1 pl-6">
+                      ส่งข้อมูลงานซ่อม คิวงาน และสถานะเข้ากลุ่มช่างโดยตรงผ่าน Group ID: <span className="font-mono font-bold text-[#06C755]">{config.groupId || DEFAULT_LINE_GROUP_ID}</span>
+                    </span>
+                  </label>
+
+                  {/* Option 2: Broadcast */}
                   <label
                     className={`p-3 rounded-xl border cursor-pointer transition flex flex-col justify-between ${
                       config.sendMode === 'broadcast'
@@ -326,13 +362,14 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                         onChange={() => setConfig({ ...config, sendMode: 'broadcast' })}
                         className="text-[#06C755] focus:ring-[#06C755]"
                       />
-                      <span className="font-bold text-xs">Broadcast (แนะนำ)</span>
+                      <span className="font-bold text-xs">Broadcast (ทุกคนที่แอดบอท)</span>
                     </div>
-                    <span className="text-[10px] text-slate-500 mt-1">
-                      ส่งหาทุกคนที่แอดไลน์ @073vezfu อัตโนมัติ ไม่ต้องกรอก User ID
+                    <span className="text-[10px] text-slate-500 mt-1 pl-6">
+                      ส่งหาทุกคนที่เพิ่มเพื่อนบอท @073vezfu
                     </span>
                   </label>
 
+                  {/* Option 3: Individual Push */}
                   <label
                     className={`p-3 rounded-xl border cursor-pointer transition flex flex-col justify-between ${
                       config.sendMode === 'push'
@@ -348,35 +385,46 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                         onChange={() => setConfig({ ...config, sendMode: 'push' })}
                         className="text-[#06C755] focus:ring-[#06C755]"
                       />
-                      <span className="font-bold text-xs">ระบุ ID เฉพาะ (Push)</span>
+                      <span className="font-bold text-xs">ระบุ Target ID อิสระ</span>
                     </div>
-                    <span className="text-[10px] text-slate-500 mt-1">
-                      ส่งเข้า User ID (U...) หรือ Group ID (C...) ที่ต้องการ
-                    </span>
-                  </label>
-
-                  <label
-                    className={`p-3 rounded-xl border cursor-pointer transition flex flex-col justify-between ${
-                      config.sendMode === 'technician_target'
-                        ? 'border-[#06C755] bg-emerald-50/50 text-[#06C755]'
-                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="sendMode"
-                        checked={config.sendMode === 'technician_target'}
-                        onChange={() => setConfig({ ...config, sendMode: 'technician_target' })}
-                        className="text-[#06C755] focus:ring-[#06C755]"
-                      />
-                      <span className="font-bold text-xs">ช่างผู้รับผิดชอบ</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 mt-1">
-                      ส่งตรงหาช่างทู หรือช่างต๊ะ ตามที่ถูกมอบหมายในใบงาน
+                    <span className="text-[10px] text-slate-500 mt-1 pl-6">
+                      ระบุ User ID (U...) หรือ Group ID อื่น
                     </span>
                   </label>
                 </div>
+
+                {/* Group ID Configuration Section */}
+                {config.sendMode === 'group' && (
+                  <div className="pt-2 p-3 bg-slate-50/80 rounded-xl border border-slate-200 animate-in fade-in space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[11px] font-bold text-slate-800">
+                        LINE Group ID สำหรับรับแจ้งเตือน
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setConfig({ ...config, groupId: DEFAULT_LINE_GROUP_ID, defaultTargetId: DEFAULT_LINE_GROUP_ID })}
+                        className="text-[10px] text-[#06C755] hover:underline font-semibold"
+                      >
+                        รีเซ็ตเป็นค่าเริ่มต้น ({DEFAULT_LINE_GROUP_ID})
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={config.groupId || DEFAULT_LINE_GROUP_ID}
+                        onChange={(e) => setConfig({ ...config, groupId: e.target.value.trim(), defaultTargetId: e.target.value.trim() })}
+                        placeholder={DEFAULT_LINE_GROUP_ID}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono font-bold text-slate-900 bg-white focus:ring-2 focus:ring-[#06C755] outline-none"
+                      />
+                    </div>
+                    <div className="flex items-start gap-1.5 text-[11px] text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold">สำคัญมาก:</span> ต้องเชิญบอท <span className="font-bold">@073vezfu (HTSengineering-BOT)</span> เข้ากลุ่มไลน์นี้ด้วย ระบบจึงจะสามารถยิงข้อความ Push เข้ากลุ่มได้
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {config.sendMode === 'push' && (
                   <div className="pt-2 animate-in fade-in">
@@ -495,7 +543,13 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                   className="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
                 >
                   <Send className={`w-3.5 h-3.5 ${isSendingTest ? 'animate-pulse' : ''}`} />
-                  <span>{isSendingTest ? 'กำลังส่ง...' : 'ส่งการ์ดทดสอบเข้า LINE'}</span>
+                  <span>
+                    {isSendingTest 
+                      ? 'กำลังส่งทดสอบ...' 
+                      : config.sendMode === 'group' 
+                      ? 'ส่งการ์ดทดสอบเข้ากลุ่ม LINE' 
+                      : 'ส่งการ์ดทดสอบเข้า LINE'}
+                  </span>
                 </button>
               </div>
 
@@ -587,6 +641,20 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                     </div>
                     <p className="text-[11px] text-slate-600 leading-relaxed">
                       นำ Token ยาวๆ ที่ได้ มาวางในช่อง Channel Access Token ในแท็บ "ตั้งค่า Messaging API" แล้วกดบันทึกและกดทดสอบส่งได้ทันที!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-xs flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-[#06C755] text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                    5
+                  </div>
+                  <div className="space-y-1">
+                    <div className="font-bold text-slate-800 text-xs">
+                      เชิญบอท @073vezfu เข้ากลุ่ม LINE (Group ID: C2f466a90ac4f15b1f9231c889e23d3d7)
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      เข้าไปในกลุ่ม LINE ของช่าง กด <b>เชิญเพื่อน (Invite)</b> แล้วค้นหาหรือเลือกบอท <b>@073vezfu (HTSengineering-BOT)</b> เข้ากลุ่ม เมื่อมีใบแจ้งซ่อมใหม่ การรับงาน หรือการปิดงาน ระบบจะส่ง Flex Message เข้ากลุ่มนี้ทันที
                     </p>
                   </div>
                 </div>

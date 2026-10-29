@@ -77,7 +77,7 @@ export interface Technician {
 }
 
 export type LineApiMode = 'messaging_api' | 'notify' | 'webhook';
-export type LineSendMode = 'broadcast' | 'push' | 'technician_target';
+export type LineSendMode = 'group' | 'broadcast' | 'push' | 'technician_target';
 
 export interface LineNotificationConfig {
   enabled: boolean;
@@ -88,6 +88,7 @@ export interface LineNotificationConfig {
   botBasicId: string;
   botName: string;
   sendMode: LineSendMode;
+  groupId: string;         // LINE Group ID (ค่าเริ่มต้น: C2f466a90ac4f15b1f9231c889e23d3d7)
   defaultTargetId: string; // LINE User ID (U...) or Group ID (C...)
   tech1LineId?: string;    // ช่างทู LINE ID
   tech2LineId?: string;    // ช่างต๊ะ LINE ID
