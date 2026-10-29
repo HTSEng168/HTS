@@ -80,7 +80,7 @@ export const lineService = {
 
   // Send real test message via Messaging API
   async sendTestNotification(config: LineNotificationConfig): Promise<{ success: boolean; message: string }> {
-    const targetGroupId = (config.groupId || config.defaultTargetId || 'C2f466a90ac4f15b1f9231c889e23d3d7').trim();
+    const targetGroupId = (config.groupId || config.defaultTargetId || 'C855d26f70609970989ec42237d9b8dfd').trim();
     const token = config.channelAccessToken?.trim();
 
     const flexMsg = createTestFlexMessage(config.botName, config.botBasicId);
@@ -185,7 +185,7 @@ export const lineService = {
     eventType: 'NEW' | 'STATUS_CHANGE' | 'CLOSED'
   ): Promise<{ success: boolean; message: string; simulatedLog: LineMessageLog }> {
     const config = storageService.getLineConfig();
-    const defaultGroup = config.groupId || config.defaultTargetId || 'C2f466a90ac4f15b1f9231c889e23d3d7';
+    const defaultGroup = config.groupId || config.defaultTargetId || 'C855d26f70609970989ec42237d9b8dfd';
 
     if (!config.enabled) {
       return {
