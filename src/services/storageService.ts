@@ -181,6 +181,9 @@ const STORAGE_KEYS = {
 
 export const DEFAULT_CLOSURE_PASSWORD = 'HTS168eng';
 export const DEFAULT_LINE_GROUP_ID = 'C2f466a90ac4f15b1f9231c889e23d3d7';
+export const DEFAULT_LINE_ACCESS_TOKEN = 'Dx0V4cHaU9Lt0GvZeST+HwAz6oeghe9YOERflKvYQg3YYeYOJQSXu0+hNdlNMXJcQR/wWhOxFqL1m4K8uGFvDUiwnu8m49ioAC7AkYSBsUSfEQb345/zQZ8Dbb1gEA82maLBoszw/sQFlO4Ng769/wdB04t89/1O/w1cDnyilFU';
+export const DEFAULT_LINE_BOT_ID = '@985anugd';
+export const DEFAULT_LINE_BOT_NAME = 'HTS-BOT';
 
 export const storageService = {
   getTickets(): RepairTicket[] {
@@ -232,9 +235,9 @@ export const storageService = {
         const defaultConfig: LineNotificationConfig = {
           enabled: true,
           apiMode: 'messaging_api',
-          channelAccessToken: '',
-          botBasicId: '@073vezfu',
-          botName: 'HTSengineering-BOT',
+          channelAccessToken: DEFAULT_LINE_ACCESS_TOKEN,
+          botBasicId: DEFAULT_LINE_BOT_ID,
+          botName: DEFAULT_LINE_BOT_NAME,
           sendMode: 'group',
           groupId: DEFAULT_LINE_GROUP_ID,
           defaultTargetId: DEFAULT_LINE_GROUP_ID,
@@ -249,14 +252,14 @@ export const storageService = {
         return defaultConfig;
       }
       const parsed = JSON.parse(data);
-      // Merge with default values in case older schema was cached
+      // Merge with default values in case older schema or empty token was cached
       const updatedConfig: LineNotificationConfig = {
         enabled: parsed.enabled ?? true,
         apiMode: parsed.apiMode || 'messaging_api',
-        channelAccessToken: parsed.channelAccessToken || '',
+        channelAccessToken: parsed.channelAccessToken || DEFAULT_LINE_ACCESS_TOKEN,
         channelSecret: parsed.channelSecret || '',
-        botBasicId: parsed.botBasicId || '@073vezfu',
-        botName: parsed.botName || 'HTSengineering-BOT',
+        botBasicId: (parsed.botBasicId && parsed.botBasicId !== '@073vezfu') ? parsed.botBasicId : DEFAULT_LINE_BOT_ID,
+        botName: (parsed.botName && parsed.botName !== 'HTSengineering-BOT') ? parsed.botName : DEFAULT_LINE_BOT_NAME,
         sendMode: parsed.sendMode === 'group' || !parsed.sendMode || parsed.sendMode === 'broadcast' 
           ? 'group' 
           : parsed.sendMode,
@@ -272,8 +275,8 @@ export const storageService = {
         autoNotifyOnClose: parsed.autoNotifyOnClose ?? true,
       };
 
-      // Ensure default group ID is persisted if it was missing
-      if (!parsed.groupId || !parsed.defaultTargetId || parsed.sendMode === 'broadcast') {
+      // Ensure defaults are persisted
+      if (!parsed.channelAccessToken || !parsed.groupId || parsed.botBasicId === '@073vezfu') {
         this.saveLineConfig(updatedConfig);
       }
       return updatedConfig;
@@ -281,9 +284,9 @@ export const storageService = {
       return {
         enabled: true,
         apiMode: 'messaging_api',
-        channelAccessToken: '',
-        botBasicId: '@073vezfu',
-        botName: 'HTSengineering-BOT',
+        channelAccessToken: DEFAULT_LINE_ACCESS_TOKEN,
+        botBasicId: DEFAULT_LINE_BOT_ID,
+        botName: DEFAULT_LINE_BOT_NAME,
         sendMode: 'group',
         groupId: DEFAULT_LINE_GROUP_ID,
         defaultTargetId: DEFAULT_LINE_GROUP_ID,

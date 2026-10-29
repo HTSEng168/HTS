@@ -177,7 +177,7 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
               <div className="flex items-center gap-2">
                 <h2 className="font-bold text-base sm:text-lg leading-tight">LINE Messaging API</h2>
                 <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  Bot @073vezfu
+                  {config.botName || 'HTS-BOT'} ({config.botBasicId || '@985anugd'})
                 </span>
               </div>
               <p className="text-xs text-white/90">ส่งแจ้งเตือน Data งานซ่อม คิวงาน และรูปภาพแบบเรียลไทม์</p>
@@ -213,7 +213,7 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
             }`}
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            วิธีเปิดใช้งาน (@073vezfu)
+            วิธีเปิดใช้งาน ({config.botBasicId || '@985anugd'})
           </button>
           <button
             onClick={() => {
@@ -243,9 +243,9 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900 text-xs sm:text-sm">HTSengineering-BOT</span>
+                      <span className="font-bold text-slate-900 text-xs sm:text-sm">{config.botName || 'HTS-BOT'}</span>
                       <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-mono font-medium">
-                        {config.botBasicId || '@073vezfu'}
+                        {config.botBasicId || '@985anugd'}
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500">บัญชีทางการ LINE Official Account สำหรับแจ้งเตือนช่าง</p>
@@ -263,7 +263,7 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                     <span>{copiedId ? 'คัดลอกแล้ว' : 'คัดลอก ID'}</span>
                   </button>
                   <a
-                    href="https://line.me/R/ti/p/@073vezfu"
+                    href={`https://line.me/R/ti/p/${config.botBasicId || '@985anugd'}`}
                     target="_blank"
                     rel="noreferrer"
                     className="px-2.5 py-1.5 text-xs bg-[#06C755]/10 hover:bg-[#06C755]/20 text-[#06C755] font-medium rounded-lg flex items-center gap-1 transition"
@@ -694,10 +694,10 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
               <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 space-y-2">
                 <div className="font-bold flex items-center gap-2 text-sm text-[#06C755]">
                   <span>📋</span>
-                  <span>คำแนะนำวิธีเปิดใช้งานตามหน้าจอของคุณ (HTSengineering-BOT)</span>
+                  <span>คำแนะนำวิธีเปิดใช้งาน ({config.botName || 'HTS-BOT'} {config.botBasicId || '@985anugd'})</span>
                 </div>
                 <p className="leading-relaxed">
-                  จากภาพหน้าจอที่คุณเปิดอยู่ใน <span className="font-bold">LINE Official Account Manager</span> (@073vezfu) ทำตาม 4 ขั้นตอนนี้เพื่อเริ่มรับส่ง Data แจ้งซ่อม:
+                  เชื่อมต่อกับบอท <span className="font-bold">{config.botName || 'HTS-BOT'}</span> ({config.botBasicId || '@985anugd'}) และส่ง Data แจ้งซ่อมเข้ากลุ่ม ID: <code className="bg-emerald-100 text-emerald-900 px-1 py-0.5 rounded font-mono font-bold">{config.groupId || DEFAULT_LINE_GROUP_ID}</code> อัตโนมัติ:
                 </p>
               </div>
 
@@ -708,10 +708,10 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                   </div>
                   <div className="space-y-1">
                     <div className="font-bold text-slate-800 text-xs">
-                      กดปุ่มสีเขียว "ใช้ Messaging API"
+                      บันทึก Channel Access Token (Long-lived) ในระบบเรียบร้อย
                     </div>
                     <p className="text-[11px] text-slate-600 leading-relaxed">
-                      ในหน้าจอเบราว์เซอร์ของคุณที่เปิดค้างอยู่ ให้คลิกปุ่มสีเขียว <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-semibold">ใช้ Messaging API</span>
+                      ระบบได้บันทึก Access Token ระยะยาวของคุณลงระบบเซิร์ฟเวอร์แบบถาวรแล้ว ไม่ต้องกังวลเรื่องโทเคนหายเมื่อรีเฟรชหน้าเว็บ
                     </p>
                   </div>
                 </div>
@@ -722,10 +722,10 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                   </div>
                   <div className="space-y-1">
                     <div className="font-bold text-slate-800 text-xs">
-                      ระบุชื่อผู้ให้บริการ (Provider Name)
+                      เชิญบอท {config.botBasicId || '@985anugd'} ({config.botName || 'HTS-BOT'}) เข้ากลุ่ม LINE
                     </div>
                     <p className="text-[11px] text-slate-600 leading-relaxed">
-                      ระบบจะให้ใส่ชื่อ Provider เช่น พิมพ์คำว่า <span className="font-mono bg-slate-100 px-1 rounded text-slate-900 font-semibold">Siri Maintenance</span> หรือ <span className="font-mono bg-slate-100 px-1 rounded text-slate-900 font-semibold">HTS Engineering</span> แล้วกดยืนยัน
+                      เข้าไปในกลุ่ม LINE ที่มีช่างทูและช่างต๊ะอยู่ (Group ID: <code className="font-mono bg-slate-100 px-1 rounded font-bold">{config.groupId || DEFAULT_LINE_GROUP_ID}</code>) กด <b>เชิญเพื่อน (Invite)</b> แล้วค้นหาบอท <b>{config.botBasicId || '@985anugd'}</b> เข้ากลุ่ม เพื่อให้บอทส่งข้อความแจ้งเตือนเข้ากลุ่มได้
                     </p>
                   </div>
                 </div>
@@ -736,41 +736,10 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
                   </div>
                   <div className="space-y-1">
                     <div className="font-bold text-slate-800 text-xs">
-                      ออก Channel Access Token (Long-lived)
+                      ส่งข้อมูลงานซ่อมและรูปภาพแบบอัตโนมัติ
                     </div>
                     <p className="text-[11px] text-slate-600 leading-relaxed">
-                      กดลิงก์ไปยัง <a href="https://developers.line.biz/console/" target="_blank" rel="noreferrer" className="text-[#06C755] font-semibold underline inline-flex items-center gap-0.5">LINE Developers Console <ExternalLink className="w-2.5 h-2.5" /></a>
-                      <br />• เลือก Channel: <b>HTSengineering-BOT</b>
-                      <br />• ไปที่แท็บ <b>Messaging API</b>
-                      <br />• เลื่อนลงไปล่างสุดที่หัวข้อ <b>Channel access token</b> กดปุ่ม <b>Issue</b> (ออกโทเคน)
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-xs flex gap-3">
-                  <div className="w-6 h-6 rounded-full bg-[#06C755] text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
-                    4
-                  </div>
-                  <div className="space-y-1">
-                    <div className="font-bold text-slate-800 text-xs">
-                      คัดลอก Token มาใส่ในแอปนี้
-                    </div>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">
-                      นำ Token ยาวๆ ที่ได้ มาวางในช่อง Channel Access Token ในแท็บ "ตั้งค่า Messaging API" แล้วกดบันทึกและกดทดสอบส่งได้ทันที!
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-xs flex gap-3">
-                  <div className="w-6 h-6 rounded-full bg-[#06C755] text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
-                    5
-                  </div>
-                  <div className="space-y-1">
-                    <div className="font-bold text-slate-800 text-xs">
-                      เชิญบอท @073vezfu เข้ากลุ่ม LINE (Group ID: C2f466a90ac4f15b1f9231c889e23d3d7)
-                    </div>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">
-                      เข้าไปในกลุ่ม LINE ของช่าง กด <b>เชิญเพื่อน (Invite)</b> แล้วค้นหาหรือเลือกบอท <b>@073vezfu (HTSengineering-BOT)</b> เข้ากลุ่ม เมื่อมีใบแจ้งซ่อมใหม่ การรับงาน หรือการปิดงาน ระบบจะส่ง Flex Message เข้ากลุ่มนี้ทันที
+                      เมื่อมีการเปิดใบแจ้งซ่อมใหม่, การเปลี่ยนสถานะงานของช่าง, หรือการปิดงานซ่อม ระบบจะส่ง Flex Message การ์ดสีสวยงามเข้ากลุ่มโดยตรง
                     </p>
                   </div>
                 </div>
@@ -779,24 +748,24 @@ export const LineNotificationModal: React.FC<LineNotificationModalProps> = ({
               {/* QR Code add bot friend */}
               <div className="p-4 bg-slate-100 rounded-xl border border-slate-200 text-center space-y-2">
                 <div className="font-bold text-xs text-slate-800">
-                  📱 ให้ช่างทู, ช่างต๊ะ และผู้เกี่ยวข้องเพิ่มเพื่อนบอทไว้:
+                  📱 ให้ช่างทู, ช่างต๊ะ และผู้เกี่ยวข้องเพิ่มเพื่อนบอท {config.botName || 'HTS-BOT'} ไว้:
                 </div>
                 <div className="inline-block p-2 bg-white rounded-xl border border-slate-200 shadow-xs">
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('https://line.me/R/ti/p/@073vezfu')}`}
-                    alt="LINE QR Code @073vezfu"
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`https://line.me/R/ti/p/${config.botBasicId || '@985anugd'}`)}`}
+                    alt={`LINE QR Code ${config.botBasicId || '@985anugd'}`}
                     className="w-32 h-32 mx-auto"
                   />
-                  <div className="text-[11px] font-mono font-bold text-slate-700 mt-1">@073vezfu</div>
+                  <div className="text-[11px] font-mono font-bold text-slate-700 mt-1">{config.botBasicId || '@985anugd'}</div>
                 </div>
                 <div>
                   <a
-                    href="https://line.me/R/ti/p/@073vezfu"
+                    href={`https://line.me/R/ti/p/${config.botBasicId || '@985anugd'}`}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#06C755] hover:bg-[#05b34c] text-white text-xs font-semibold rounded-lg shadow-xs transition"
                   >
-                    <span>คลิกเพื่อเพิ่มเพื่อน @073vezfu ใน LINE</span>
+                    <span>คลิกเพื่อเพิ่มเพื่อน {config.botBasicId || '@985anugd'} ใน LINE</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>

@@ -18,10 +18,10 @@ interface ServerLineConfig {
 
 function loadServerConfig(): ServerLineConfig {
   let config: ServerLineConfig = {
-    channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || '',
+    channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || 'Dx0V4cHaU9Lt0GvZeST+HwAz6oeghe9YOERflKvYQg3YYeYOJQSXu0+hNdlNMXJcQR/wWhOxFqL1m4K8uGFvDUiwnu8m49ioAC7AkYSBsUSfEQb345/zQZ8Dbb1gEA82maLBoszw/sQFlO4Ng769/wdB04t89/1O/w1cDnyilFU',
     groupId: process.env.LINE_TARGET_GROUP_ID || 'C2f466a90ac4f15b1f9231c889e23d3d7',
-    botBasicId: '@073vezfu',
-    botName: 'HTSengineering-BOT',
+    botBasicId: '@985anugd',
+    botName: 'HTS-BOT',
   };
 
   try {
@@ -120,6 +120,9 @@ async function startServer() {
           });
           if (verifyRes.ok) {
             botInfo = await verifyRes.json();
+            if (botInfo.basicId) updated.botBasicId = botInfo.basicId;
+            if (botInfo.displayName) updated.botName = botInfo.displayName;
+            fs.writeFileSync(CONFIG_FILE, JSON.stringify(updated, null, 2), 'utf-8');
           } else {
             const errData = await verifyRes.json().catch(() => ({}));
             verifyWarning = (errData as any)?.message || 'Token อาจไม่ถูกต้องหรือหมดอายุ';
