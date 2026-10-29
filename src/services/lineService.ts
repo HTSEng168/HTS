@@ -164,7 +164,7 @@ export const lineService = {
 
       return {
         success: false,
-        message: resData.error || `ส่งไม่สำเร็จ กรุณาตรวจสอบว่าเชิญบอท @073vezfu เข้ากลุ่ม ${targetGroupId} แล้วหรือยัง`,
+        message: resData.error || `ส่งไม่สำเร็จ กรุณาตรวจสอบว่าเชิญบอท ${config.botBasicId || '@985anugd'} (${config.botName || 'HTS-BOT'}) เข้ากลุ่ม ${targetGroupId} แล้วหรือยัง`,
       };
     } catch (err: any) {
       return {

@@ -180,10 +180,16 @@ const STORAGE_KEYS = {
 };
 
 export const DEFAULT_CLOSURE_PASSWORD = 'HTS168eng';
-export const DEFAULT_LINE_GROUP_ID = 'C2f466a90ac4f15b1f9231c889e23d3d7';
-export const DEFAULT_LINE_ACCESS_TOKEN = 'Dx0V4cHaU9Lt0GvZeST+HwAz6oeghe9YOERflKvYQg3YYeYOJQSXu0+hNdlNMXJcQR/wWhOxFqL1m4K8uGFvDUiwnu8m49ioAC7AkYSBsUSfEQb345/zQZ8Dbb1gEA82maLBoszw/sQFlO4Ng769/wdB04t89/1O/w1cDnyilFU';
-export const DEFAULT_LINE_BOT_ID = '@985anugd';
-export const DEFAULT_LINE_BOT_NAME = 'HTS-BOT';
+export const SYSTEM_LOCKED_GROUP_ID = 'C2f466a90ac4f15b1f9231c889e23d3d7';
+export const SYSTEM_LOCKED_LINE_TOKEN = 'Dx0V4cHaU9Lt0GvZeST+HwAz6oeghe9YOERflKvYQg3YYeYOJQSXu0+hNdlNMXJcQR/wWhOxFqL1m4K8uGFvDUiwnu8m49ioAC7AkYSBsUSfEQb345/zQZ8Dbb1gEA82maLBoszw/sQFlO4Ng769/wdB04t89/1O/w1cDnyilFU=';
+export const SYSTEM_LOCKED_BOT_ID = '@985anugd';
+export const SYSTEM_LOCKED_BOT_NAME = 'HTS-BOT';
+
+// Backward compatibility aliases
+export const DEFAULT_LINE_GROUP_ID = SYSTEM_LOCKED_GROUP_ID;
+export const DEFAULT_LINE_ACCESS_TOKEN = SYSTEM_LOCKED_LINE_TOKEN;
+export const DEFAULT_LINE_BOT_ID = SYSTEM_LOCKED_BOT_ID;
+export const DEFAULT_LINE_BOT_NAME = SYSTEM_LOCKED_BOT_NAME;
 
 export const storageService = {
   getTickets(): RepairTicket[] {
@@ -235,12 +241,12 @@ export const storageService = {
         const defaultConfig: LineNotificationConfig = {
           enabled: true,
           apiMode: 'messaging_api',
-          channelAccessToken: DEFAULT_LINE_ACCESS_TOKEN,
-          botBasicId: DEFAULT_LINE_BOT_ID,
-          botName: DEFAULT_LINE_BOT_NAME,
+          channelAccessToken: SYSTEM_LOCKED_LINE_TOKEN,
+          botBasicId: SYSTEM_LOCKED_BOT_ID,
+          botName: SYSTEM_LOCKED_BOT_NAME,
           sendMode: 'group',
-          groupId: DEFAULT_LINE_GROUP_ID,
-          defaultTargetId: DEFAULT_LINE_GROUP_ID,
+          groupId: SYSTEM_LOCKED_GROUP_ID,
+          defaultTargetId: SYSTEM_LOCKED_GROUP_ID,
           useFlexMessage: true,
           notifyToken: '',
           channelWebhookUrl: '',
@@ -252,19 +258,17 @@ export const storageService = {
         return defaultConfig;
       }
       const parsed = JSON.parse(data);
-      // Merge with default values in case older schema or empty token was cached
+      // ALWAYS enforce the system-locked Token, Group ID, and Bot ID
       const updatedConfig: LineNotificationConfig = {
         enabled: parsed.enabled ?? true,
-        apiMode: parsed.apiMode || 'messaging_api',
-        channelAccessToken: parsed.channelAccessToken || DEFAULT_LINE_ACCESS_TOKEN,
+        apiMode: 'messaging_api',
+        channelAccessToken: SYSTEM_LOCKED_LINE_TOKEN,
         channelSecret: parsed.channelSecret || '',
-        botBasicId: (parsed.botBasicId && parsed.botBasicId !== '@073vezfu') ? parsed.botBasicId : DEFAULT_LINE_BOT_ID,
-        botName: (parsed.botName && parsed.botName !== 'HTSengineering-BOT') ? parsed.botName : DEFAULT_LINE_BOT_NAME,
-        sendMode: parsed.sendMode === 'group' || !parsed.sendMode || parsed.sendMode === 'broadcast' 
-          ? 'group' 
-          : parsed.sendMode,
-        groupId: parsed.groupId || DEFAULT_LINE_GROUP_ID,
-        defaultTargetId: parsed.defaultTargetId || parsed.groupId || DEFAULT_LINE_GROUP_ID,
+        botBasicId: SYSTEM_LOCKED_BOT_ID,
+        botName: SYSTEM_LOCKED_BOT_NAME,
+        sendMode: 'group',
+        groupId: SYSTEM_LOCKED_GROUP_ID,
+        defaultTargetId: SYSTEM_LOCKED_GROUP_ID,
         tech1LineId: parsed.tech1LineId || '',
         tech2LineId: parsed.tech2LineId || '',
         useFlexMessage: parsed.useFlexMessage ?? true,
@@ -275,18 +279,16 @@ export const storageService = {
         autoNotifyOnClose: parsed.autoNotifyOnClose ?? true,
       };
 
-      // Ensure defaults are persisted
-      if (!parsed.channelAccessToken || !parsed.groupId || parsed.botBasicId === '@073vezfu') {
-        this.saveLineConfig(updatedConfig);
-      }
+      // Always save back to ensure consistency
+      this.saveLineConfig(updatedConfig);
       return updatedConfig;
     } catch {
       return {
         enabled: true,
         apiMode: 'messaging_api',
-        channelAccessToken: DEFAULT_LINE_ACCESS_TOKEN,
-        botBasicId: DEFAULT_LINE_BOT_ID,
-        botName: DEFAULT_LINE_BOT_NAME,
+        channelAccessToken: SYSTEM_LOCKED_LINE_TOKEN,
+        botBasicId: SYSTEM_LOCKED_BOT_ID,
+        botName: SYSTEM_LOCKED_BOT_NAME,
         sendMode: 'group',
         groupId: DEFAULT_LINE_GROUP_ID,
         defaultTargetId: DEFAULT_LINE_GROUP_ID,

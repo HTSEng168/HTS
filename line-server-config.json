@@ -1,7 +1,8 @@
 {
-  "channelAccessToken": "Dx0V4cHaU9Lt0GvZeST+HwAz6oeghe9YOERflKvYQg3YYeYOJQSXu0+hNdlNMXJcQR/wWhOxFqL1m4K8uGFvDUiwnu8m49ioAC7AkYSBsUSfEQb345/zQZ8Dbb1gEA82maLBoszw/sQFlO4Ng769/wdB04t89/1O/w1cDnyilFU",
+  "channelAccessToken": "Dx0V4cHaU9Lt0GvZeST+HwAz6oeghe9YOERflKvYQg3YYeYOJQSXu0+hNdlNMXJcQR/wWhOxFqL1m4K8uGFvDUiwnu8m49ioAC7AkYSBsUSfEQb345/zQZ8Dbb1gEA82maLBoszw/sQFlO4Ng769/wdB04t89/1O/w1cDnyilFU=",
   "groupId": "C2f466a90ac4f15b1f9231c889e23d3d7",
   "botBasicId": "@985anugd",
   "botName": "HTS-BOT",
-  "botUserId": "Uf2227dc73d67709f30b7bf42dc40d16c"
+  "botUserId": "Uf2227dc73d67709f30b7bf42dc40d16c",
+  "isLocked": true
 }

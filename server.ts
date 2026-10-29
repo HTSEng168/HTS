@@ -9,6 +9,12 @@ const __dirname = path.dirname(__filename);
 
 const CONFIG_FILE = path.resolve(__dirname, 'line-server-config.json');
 
+// System-locked credentials embedded into the application
+export const SYSTEM_LOCKED_LINE_TOKEN = 'Dx0V4cHaU9Lt0GvZeST+HwAz6oeghe9YOERflKvYQg3YYeYOJQSXu0+hNdlNMXJcQR/wWhOxFqL1m4K8uGFvDUiwnu8m49ioAC7AkYSBsUSfEQb345/zQZ8Dbb1gEA82maLBoszw/sQFlO4Ng769/wdB04t89/1O/w1cDnyilFU=';
+export const SYSTEM_LOCKED_GROUP_ID = 'C2f466a90ac4f15b1f9231c889e23d3d7';
+export const SYSTEM_LOCKED_BOT_ID = '@985anugd';
+export const SYSTEM_LOCKED_BOT_NAME = 'HTS-BOT';
+
 interface ServerLineConfig {
   channelAccessToken: string;
   groupId: string;
@@ -18,10 +24,10 @@ interface ServerLineConfig {
 
 function loadServerConfig(): ServerLineConfig {
   let config: ServerLineConfig = {
-    channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || 'Dx0V4cHaU9Lt0GvZeST+HwAz6oeghe9YOERflKvYQg3YYeYOJQSXu0+hNdlNMXJcQR/wWhOxFqL1m4K8uGFvDUiwnu8m49ioAC7AkYSBsUSfEQb345/zQZ8Dbb1gEA82maLBoszw/sQFlO4Ng769/wdB04t89/1O/w1cDnyilFU',
-    groupId: process.env.LINE_TARGET_GROUP_ID || 'C2f466a90ac4f15b1f9231c889e23d3d7',
-    botBasicId: '@985anugd',
-    botName: 'HTS-BOT',
+    channelAccessToken: SYSTEM_LOCKED_LINE_TOKEN,
+    groupId: SYSTEM_LOCKED_GROUP_ID,
+    botBasicId: SYSTEM_LOCKED_BOT_ID,
+    botName: SYSTEM_LOCKED_BOT_NAME,
   };
 
   try {
@@ -32,6 +38,12 @@ function loadServerConfig(): ServerLineConfig {
   } catch (err) {
     console.warn('Could not read line-server-config.json:', err);
   }
+
+  // Guarantee locked values are always present
+  if (!config.channelAccessToken) config.channelAccessToken = SYSTEM_LOCKED_LINE_TOKEN;
+  if (!config.groupId) config.groupId = SYSTEM_LOCKED_GROUP_ID;
+  if (!config.botBasicId || config.botBasicId === '@073vezfu') config.botBasicId = SYSTEM_LOCKED_BOT_ID;
+  if (!config.botName || config.botName === 'HTSengineering-BOT') config.botName = SYSTEM_LOCKED_BOT_NAME;
 
   return config;
 }
@@ -77,16 +89,17 @@ async function startServer() {
   // Get current LINE server config (persistent channelAccessToken & groupId)
   apiRouter.get('/line/config', (_req, res) => {
     const current = loadServerConfig();
-    const token = current.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
+    const token = current.channelAccessToken || SYSTEM_LOCKED_LINE_TOKEN;
     const tokenPreview = token ? `${token.substring(0, 10)}...${token.substring(token.length - 8)}` : '';
     res.json({
       success: true,
-      hasToken: !!token,
+      hasToken: true,
+      isLocked: true,
       tokenPreview,
       token, // provided so client can auto-load and avoid manual re-entry
-      groupId: current.groupId || 'C2f466a90ac4f15b1f9231c889e23d3d7',
-      botBasicId: current.botBasicId || '@073vezfu',
-      botName: current.botName || 'HTSengineering-BOT',
+      groupId: current.groupId || SYSTEM_LOCKED_GROUP_ID,
+      botBasicId: current.botBasicId || SYSTEM_LOCKED_BOT_ID,
+      botName: current.botName || SYSTEM_LOCKED_BOT_NAME,
     });
   });
 
@@ -200,8 +213,8 @@ async function startServer() {
     try {
       const { channelAccessToken, to, messages } = req.body;
       const serverCfg = loadServerConfig();
-      const token = (channelAccessToken || serverCfg.channelAccessToken || process.env.LINE_CHANNEL_ACCESS_TOKEN || '').trim();
-      const targetTo = (to || serverCfg.groupId || process.env.LINE_TARGET_GROUP_ID || 'C2f466a90ac4f15b1f9231c889e23d3d7').trim();
+      const token = (channelAccessToken || serverCfg.channelAccessToken || SYSTEM_LOCKED_LINE_TOKEN).trim();
+      const targetTo = (to || serverCfg.groupId || SYSTEM_LOCKED_GROUP_ID).trim();
 
       if (!token) {
         return res.status(400).json({
