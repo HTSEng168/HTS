@@ -11,7 +11,7 @@ const CONFIG_FILE = path.resolve(__dirname, 'line-server-config.json');
 
 // System-locked credentials embedded into the application
 export const SYSTEM_LOCKED_LINE_TOKEN = 'Dx0V4cHaU9Lt0GvZeST+HwAz6oeghe9YOERflKvYQg3YYeYOJQSXu0+hNdlNMXJcQR/wWhOxFqL1m4K8uGFvDUiwnu8m49ioAC7AkYSBsUSfEQb345/zQZ8Dbb1gEA82maLBoszw/sQFlO4Ng769/wdB04t89/1O/w1cDnyilFU=';
-export const SYSTEM_LOCKED_GROUP_ID = 'C2f466a90ac4f15b1f9231c889e23d3d7';
+export const SYSTEM_LOCKED_GROUP_ID = 'C855d26f70609970989ec42237d9b8dfd';
 export const SYSTEM_LOCKED_BOT_ID = '@985anugd';
 export const SYSTEM_LOCKED_BOT_NAME = 'HTS-BOT';
 
@@ -116,7 +116,7 @@ async function startServer() {
         payload.channelAccessToken = String(channelAccessToken).trim();
       }
       if (groupId !== undefined) {
-        payload.groupId = String(groupId).trim() || 'C2f466a90ac4f15b1f9231c889e23d3d7';
+        payload.groupId = String(groupId).trim() || 'C855d26f70609970989ec42237d9b8dfd';
       }
 
       const updated = saveServerConfig(payload);
